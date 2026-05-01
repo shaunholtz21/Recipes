@@ -2,40 +2,110 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>All Recipes</title>
+  <title>Recipes</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    .recipe { padding: 10px; border-bottom: 1px solid #ccc; }
-    a { text-decoration: none; color: blue; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .recipe-row {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recipe-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    #emptyMessage {
+      margin-top: 20px;
+      font-style: italic;
+      color: #666;
+    }
   </style>
 </head>
+
 <body>
 
-<h1>All Recipes</h1>
-<div id="recipes"></div>
+  <h2>Your Recipes</h2>
 
-<script>
-async function loadRecipes() {
-  const response = await fetch("data/recipes.json");
-  const recipes = await response.json();
+  <button onclick="window.location.href='add.html'">+ Add New Recipe</button>
 
-  const container = document.getElementById("recipes");
+  <div id="recipeList"></div>
+  <div id="emptyMessage" style="display:none;">No recipes yet. Add one!</div>
 
-  recipes.forEach(r => {
-    const div = document.createElement("div");
-    div.className = "recipe";
-    div.innerHTML = `
-      <strong>${r.name}</strong><br>
-      Category: ${r.category || "None"}<br>
-      <a href="view.html?id=${r.id}">View</a> |
-      <a href="edit.html?id=${r.id}">Edit</a>
-    `;
-    container.appendChild(div);
-  });
-}
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
 
-loadRecipes();
-</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", loadRecipes);
+
+    async function loadRecipes() {
+      const { data, error } = await supabase
+        .from("recipes")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const container = document.getElementById("recipeList");
+      container.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        document.getElementById("emptyMessage").style.display = "block";
+        return;
+      }
+
+      data.forEach(recipe => {
+        const div = document.createElement("div");
+        div.className = "recipe-row";
+
+        div.innerHTML = `
+          <div class="recipe-name">${recipe.name}</div>
+          <div class="buttons">
+            <button onclick="viewRecipe(${recipe.id})">View</button>
+            <button onclick="editRecipe(${recipe.id})">Edit</button>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function viewRecipe(id) {
+      window.location.href = `view.html?id=${id}`;
+    }
+
+    function editRecipe(id) {
+      window.location.href = `edit.html?id=${id}`;
+    }
+  </script>
 
 </body>
 </html>
