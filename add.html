@@ -10,41 +10,15 @@
       max-width: 700px;
       margin: auto;
     }
-
-    .step {
-      display: none;
-    }
-
-    .step.active {
-      display: block;
-    }
-
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-
-    input, textarea, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-    }
-
-    button {
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-
+    .step { display: none; }
+    .step.active { display: block; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { padding: 8px 12px; cursor: pointer; }
     .ingredient-row, .step-row {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      margin-top: 10px;
+      padding: 8px; border-bottom: 1px solid #ddd; margin-top: 10px;
     }
-
-    .nav-buttons {
-      margin-top: 20px;
-    }
+    .nav-buttons { margin-top: 20px; }
   </style>
 </head>
 
@@ -52,7 +26,7 @@
 
   <h2>Add New Recipe</h2>
 
-  <!-- STEP 1: BASICS -->
+  <!-- STEP 1 -->
   <div id="step1" class="step active">
     <label>Recipe Name</label>
     <input id="recipeName" type="text">
@@ -68,7 +42,7 @@
     </div>
   </div>
 
-  <!-- STEP 2: INGREDIENTS -->
+  <!-- STEP 2 -->
   <div id="step2" class="step">
     <h3>Ingredients</h3>
 
@@ -90,7 +64,7 @@
     <label>Unit</label>
     <input id="ingredientUnit" type="text">
 
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
+    <div style="display:flex; gap:10px; margin-top:20px;">
       <button onclick="addIngredientToList()">Add Ingredient</button>
       <button onclick="openIngredientPopup()">+ Add New Ingredient</button>
     </div>
@@ -104,7 +78,7 @@
     </div>
   </div>
 
-  <!-- STEP 3: STEPS -->
+  <!-- STEP 3 -->
   <div id="step3" class="step">
     <h3>Steps</h3>
 
@@ -122,10 +96,9 @@
     </div>
   </div>
 
-  <!-- STEP 4: REVIEW -->
+  <!-- STEP 4 -->
   <div id="step4" class="step">
     <h3>Review Recipe</h3>
-
     <div id="reviewSection"></div>
 
     <div class="nav-buttons">
@@ -134,10 +107,9 @@
     </div>
   </div>
 
-  <!-- STEP 5: DONE -->
+  <!-- STEP 5 -->
   <div id="step5" class="step">
     <h3>Recipe Saved!</h3>
-    <p>Your recipe has been added.</p>
     <button onclick="window.location.href='index.html'">Back to Recipes</button>
   </div>
 
@@ -169,18 +141,12 @@
       showStep(currentStep);
     }
 
-    /* -------------------------
-       CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
-       (skip empty levels)
-    --------------------------*/
-
+    /* HIERARCHY */
     async function loadCategories() {
       const cats = await getCategories();
       const sel = document.getElementById("categorySelect");
-
       sel.innerHTML = "<option value=''>-- Select --</option>";
       cats.forEach(c => sel.innerHTML += `<option>${c}</option>`);
-
       document.getElementById("subcategorySelect").innerHTML = "";
       document.getElementById("subsubcategorySelect").innerHTML = "";
       document.getElementById("ingredientSelect").innerHTML = "";
@@ -190,7 +156,6 @@
       const cat = document.getElementById("categorySelect").value;
       const subs = await getSubcategories(cat);
       const sel = document.getElementById("subcategorySelect");
-
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
       if (subs.length === 0) {
@@ -201,7 +166,6 @@
       }
 
       subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
-
       document.getElementById("subsubcategorySelect").innerHTML = "";
       document.getElementById("ingredientSelect").innerHTML = "";
     }
@@ -209,10 +173,8 @@
     async function loadSubSubcategories() {
       const cat = document.getElementById("categorySelect").value;
       const sub = document.getElementById("subcategorySelect").value;
-
       const subs = await getSubSubcategories(cat, sub);
       const sel = document.getElementById("subsubcategorySelect");
-
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
       if (subs.length === 0) {
@@ -222,7 +184,6 @@
       }
 
       subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
-
       document.getElementById("ingredientSelect").innerHTML = "";
     }
 
@@ -247,10 +208,7 @@
       window.open("add_ingredient.html", "_blank", "width=500,height=600");
     }
 
-    /* -------------------------
-       INGREDIENT LIST
-    --------------------------*/
-
+    /* INGREDIENT LIST */
     function addIngredientToList() {
       const id = document.getElementById("ingredientSelect").value;
       const qty = document.getElementById("ingredientQty").value.trim();
@@ -270,28 +228,19 @@
       document.getElementById("ingredientUnit").value = "";
     }
 
-    /* -------------------------
-       STEPS
-    --------------------------*/
-
+    /* STEPS */
     function addStepToList() {
       const instruction = document.getElementById("stepInstruction").value.trim();
       if (!instruction) return;
-
       steps.push(instruction);
-
       const div = document.createElement("div");
       div.className = "step-row";
       div.textContent = `${steps.length}. ${instruction}`;
       document.getElementById("stepsList").appendChild(div);
-
       document.getElementById("stepInstruction").value = "";
     }
 
-    /* -------------------------
-       REVIEW
-    --------------------------*/
-
+    /* REVIEW */
     function buildReview() {
       const name = document.getElementById("recipeName").value;
       const category = document.getElementById("recipeCategory").value;
@@ -301,7 +250,6 @@
         <strong>Name:</strong> ${name}<br>
         <strong>Category:</strong> ${category}<br>
         <strong>Notes:</strong> ${notes}<br><br>
-
         <strong>Ingredients:</strong><br>
       `;
 
@@ -310,17 +258,12 @@
       });
 
       html += `<br><strong>Steps:</strong><br>`;
-      steps.forEach((s, idx) => {
-        html += `${idx + 1}. ${s}<br>`;
-      });
+      steps.forEach((s, idx) => html += `${idx + 1}. ${s}<br>`);
 
       document.getElementById("reviewSection").innerHTML = html;
     }
 
-    /* -------------------------
-       SAVE RECIPE
-    --------------------------*/
-
+    /* SAVE */
     async function saveRecipe() {
       const name = document.getElementById("recipeName").value.trim();
       const category = document.getElementById("recipeCategory").value.trim();
