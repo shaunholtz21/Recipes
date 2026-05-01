@@ -64,17 +64,17 @@
   <!-- CATEGORY -->
   <label>Category</label>
   <select id="categorySelect"></select>
-  <button onclick="openModal('category')">+ Add New</button>
+  <button onclick="openModal('category')">Add New Category</button>
 
   <!-- SUBCATEGORY -->
   <label>Subcategory</label>
   <select id="subcategorySelect"></select>
-  <button onclick="openModal('subcategory')">+ Add New</button>
+  <button onclick="openModal('subcategory')">Add New Subcategory</button>
 
   <!-- SUB-SUBCATEGORY -->
   <label>Sub‑subcategory</label>
   <select id="subsubcategorySelect"></select>
-  <button onclick="openModal('subsubcategory')">+ Add New</button>
+  <button onclick="openModal('subsubcategory')">Add New Sub‑subcategory</button>
 
   <!-- INGREDIENT NAME -->
   <label>Ingredient Name</label>
@@ -94,157 +94,171 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
-  <script src="supabase.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
+<script src="supabase.js"></script>
 
-  <script>
-    let modalType = null;
+<script>
+  let modalType = null;
 
-    // Load categories on page load
-    document.addEventListener("DOMContentLoaded", async () => {
-      await refreshCategories();
-    });
-
-    async function refreshCategories() {
-      const categories = await getCategories();
-      const select = document.getElementById("categorySelect");
-
-      select.innerHTML = "<option value=''>-- Select --</option>";
-      categories.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        select.appendChild(opt);
-      });
-
-      select.onchange = refreshSubcategories;
-    }
-
-    async function refreshSubcategories() {
-      const category = document.getElementById("categorySelect").value;
-      const subcategories = await getSubcategories(category);
-      const select = document.getElementById("subcategorySelect");
-
-      select.innerHTML = "<option value=''>-- Select --</option>";
-      subcategories.forEach(sc => {
-        const opt = document.createElement("option");
-        opt.value = sc;
-        opt.textContent = sc;
-        select.appendChild(opt);
-      });
-
-      select.onchange = refreshSubSubcategories;
-      refreshSubSubcategories();
-    }
-
-    async function refreshSubSubcategories() {
-      const category = document.getElementById("categorySelect").value;
-      const subcategory = document.getElementById("subcategorySelect").value;
-
-      const subsubs = await getSubSubcategories(category, subcategory);
-      const select = document.getElementById("subsubcategorySelect");
-
-      select.innerHTML = "<option value=''>-- Select --</option>";
-      subsubs.forEach(ss => {
-        const opt = document.createElement("option");
-        opt.value = ss;
-        opt.textContent = ss;
-        select.appendChild(opt);
-      });
-    }
-
-    /* -------------------------
-       MODAL HANDLING
-    --------------------------*/
-
-    function openModal(type) {
-      modalType = type;
-
-      const modalTitle = document.getElementById("modalTitle");
-
-      if (type === "category") modalTitle.textContent = "Add New Category";
-      if (type === "subcategory") modalTitle.textContent = "Add New Subcategory";
-      if (type === "subsubcategory") modalTitle.textContent = "Add New Sub‑subcategory";
-
-      document.getElementById("modalInput").value = "";
-      document.getElementById("modalBg").style.display = "flex";
-    }
-
-    function closeModal() {
-      document.getElementById("modalBg").style.display = "none";
-    }
-
-    async function saveModalValue() {
-      alert("saveModalValue fired"
-  const value = document.getElementById("modalInput").value.trim();
-  if (!value) return;
-
-  const category = document.getElementById("categorySelect").value;
-  const subcategory = document.getElementById("subcategorySelect").value;
-
-  if (modalType === "category") {
-    await addIngredient({
-      name: "(placeholder)",
-      category: value,
-      subcategory: null,
-      subsubcategory: null
-    });
-
-    closeModal();
+  document.addEventListener("DOMContentLoaded", async () => {
     await refreshCategories();
-    return;
-  }
+  });
 
-  if (modalType === "subcategory") {
-    if (!category) return alert("Select a category first");
+  async function refreshCategories() {
+    const categories = await getCategories();
+    const select = document.getElementById("categorySelect");
 
-    await addIngredient({
-      name: "(placeholder)",
-      category,
-      subcategory: value,
-      subsubcategory: null
+    select.innerHTML = "<option value=''>-- Select --</option>";
+    categories.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      select.appendChild(opt);
     });
 
-    closeModal();
+    select.onchange = refreshSubcategories;
     await refreshSubcategories();
-    return;
   }
 
-  if (modalType === "subsubcategory") {
-    if (!category || !subcategory)
-      return alert("Select category + subcategory first");
+  async function refreshSubcategories() {
+    const category = document.getElementById("categorySelect").value;
+    const select = document.getElementById("subcategorySelect");
 
-    await addIngredient({
-      name: "(placeholder)",
-      category,
-      subcategory,
-      subsubcategory: value
+    if (!category) {
+      select.innerHTML = "<option value=''>-- Select --</option>";
+      document.getElementById("subsubcategorySelect").innerHTML = "<option value=''>-- Select --</option>";
+      return;
+    }
+
+    const subcategories = await getSubcategories(category);
+
+    select.innerHTML = "<option value=''>-- Select --</option>";
+    subcategories.forEach(sc => {
+      const opt = document.createElement("option");
+      opt.value = sc;
+      opt.textContent = sc;
+      select.appendChild(opt);
     });
 
-    closeModal();
+    select.onchange = refreshSubSubcategories;
     await refreshSubSubcategories();
-    return;
   }
-}
 
-    /* -------------------------
-       SAVE INGREDIENT
-    --------------------------*/
+  async function refreshSubSubcategories() {
+    const category = document.getElementById("categorySelect").value;
+    const subcategory = document.getElementById("subcategorySelect").value;
+    const select = document.getElementById("subsubcategorySelect");
 
-    async function saveIngredient() {
-      const name = document.getElementById("ingredientName").value.trim();
-      const category = document.getElementById("categorySelect").value;
-      const subcategory = document.getElementById("subcategorySelect").value;
-      const subsubcategory = document.getElementById("subsubcategorySelect").value;
-
-      if (!name) return alert("Ingredient name required");
-
-      await addIngredient({ name, category, subcategory, subsubcategory });
-
-      alert("Ingredient saved");
-      window.close();
+    if (!category || !subcategory) {
+      select.innerHTML = "<option value=''>-- Select --</option>";
+      return;
     }
-  </script>
+
+    const subsubs = await getSubSubcategories(category, subcategory);
+
+    select.innerHTML = "<option value=''>-- Select --</option>";
+    subsubs.forEach(ss => {
+      const opt = document.createElement("option");
+      opt.value = ss;
+      opt.textContent = ss;
+      select.appendChild(opt);
+    });
+  }
+
+  // ---------- MODAL ----------
+
+  function openModal(type) {
+    modalType = type;
+
+    const modalTitle = document.getElementById("modalTitle");
+    if (type === "category") modalTitle.textContent = "Add New Category";
+    if (type === "subcategory") modalTitle.textContent = "Add New Subcategory";
+    if (type === "subsubcategory") modalTitle.textContent = "Add New Sub‑subcategory";
+
+    document.getElementById("modalInput").value = "";
+    document.getElementById("modalBg").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("modalBg").style.display = "none";
+  }
+
+  async function saveModalValue() {
+    const value = document.getElementById("modalInput").value.trim();
+    if (!value) return;
+
+    const category = document.getElementById("categorySelect").value;
+    const subcategory = document.getElementById("subcategorySelect").value;
+
+    if (modalType === "category") {
+      await addIngredient({
+        name: "(placeholder)",
+        category: value,
+        subcategory: null,
+        subsubcategory: null
+      });
+
+      closeModal();
+      await refreshCategories();
+      return;
+    }
+
+    if (modalType === "subcategory") {
+      if (!category) {
+        alert("Select a category first");
+        return;
+      }
+
+      await addIngredient({
+        name: "(placeholder)",
+        category,
+        subcategory: value,
+        subsubcategory: null
+      });
+
+      closeModal();
+      await refreshSubcategories();
+      return;
+    }
+
+    if (modalType === "subsubcategory") {
+      if (!category || !subcategory) {
+        alert("Select category and subcategory first");
+        return;
+      }
+
+      await addIngredient({
+        name: "(placeholder)",
+        category,
+        subcategory,
+        subsubcategory: value
+      });
+
+      closeModal();
+      await refreshSubSubcategories();
+      return;
+    }
+  }
+
+  // ---------- SAVE INGREDIENT ----------
+
+  async function saveIngredient() {
+    const name = document.getElementById("ingredientName").value.trim();
+    const category = document.getElementById("categorySelect").value || null;
+    const subcategory = document.getElementById("subcategorySelect").value || null;
+    const subsubcategory = document.getElementById("subsubcategorySelect").value || null;
+
+    if (!name) {
+      alert("Ingredient name required");
+      return;
+    }
+
+    await addIngredient({ name, category, subcategory, subsubcategory });
+
+    alert("Ingredient saved");
+    window.close();
+  }
+</script>
 
 </body>
 </html>
