@@ -3,61 +3,316 @@
 <head>
   <meta charset="UTF-8">
   <title>Edit Recipe</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="supabase.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    .section {
+      margin-top: 25px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .ingredient-row, .step-row {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      margin-top: 10px;
+    }
+
+    .delete-btn {
+      float: right;
+      color: red;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
 
-<a href="index.html">← Back</a>
-<h1>Edit Recipe</h1>
+  <h2>Edit Recipe</h2>
 
-<form id="recipeForm">
-  <label>Name:</label><br>
-  <input type="text" id="name"><br><br>
+  <!-- BASICS -->
+  <div class="section">
+    <label>Recipe Name</label>
+    <input id="recipeName" type="text">
 
-  <label>Category:</label><br>
-  <input type="text" id="category"><br><br>
+    <label>Recipe Category</label>
+    <input id="recipeCategory" type="text">
 
-  <label>Notes:</label><br>
-  <textarea id="notes"></textarea><br><br>
+    <label>Notes</label>
+    <textarea id="recipeNotes" rows="4"></textarea>
+  </div>
 
-  <button type="submit">Save Changes</button>
-</form>
+  <!-- INGREDIENTS -->
+  <div class="section">
+    <h3>Ingredients</h3>
 
-<script>
-function getQueryParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
-}
+    <label>Select Ingredient</label>
+    <select id="ingredientSelect"></select>
 
-async function loadRecipe() {
-  const id = getQueryParam("id");
-  const recipe = await getRecipe(id);
+    <button onclick="openIngredientPopup()">+ Add Ingredient</button>
 
-  document.getElementById("name").value = recipe.name;
-  document.getElementById("category").value = recipe.category || "";
-  document.getElementById("notes").value = recipe.notes || "";
-}
+    <label>Quantity</label>
+    <input id="ingredientQty" type="text">
 
-document.getElementById("recipeForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+    <label>Unit</label>
+    <input id="ingredientUnit" type="text">
 
-  const id = getQueryParam("id");
+    <button onclick="addIngredientToList()">Add Ingredient</button>
 
-  await supabase
-    .from("recipes")
-    .update({
-      name: document.getElementById("name").value,
-      category: document.getElementById("category").value,
-      notes: document.getElementById("notes").value
-    })
-    .eq("id", id);
+    <h4>Ingredient List</h4>
+    <div id="ingredientList"></div>
+  </div>
 
-  alert("Recipe updated!");
-  window.location.href = "index.html";
-});
+  <!-- STEPS -->
+  <div class="section">
+    <h3>Steps</h3>
 
-loadRecipe();
-</script>
+    <label>Instruction</label>
+    <textarea id="stepInstruction" rows="3"></textarea>
+
+    <button onclick="addStepToList()">Add Step</button>
+
+    <h4>Steps</h4>
+    <div id="stepsList"></div>
+  </div>
+
+  <button onclick="saveRecipe()">Save Changes</button>
+  <button onclick="window.location.href='index.html'">Cancel</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const recipeId = params.get("id");
+
+    let ingredients = [];
+    let steps = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadIngredientsDropdown();
+      await loadRecipe();
+    });
+
+    /* -------------------------
+       LOAD EXISTING RECIPE
+    --------------------------*/
+
+    async function loadRecipe() {
+      if (!recipeId) {
+        alert("No recipe ID provided");
+        return;
+      }
+
+      // Load basics
+      const recipe = await getRecipe(recipeId);
+
+      document.getElementById("recipeName").value = recipe.name;
+      document.getElementById("recipeCategory").value = recipe.category || "";
+      document.getElementById("recipeNotes").value = recipe.notes || "";
+
+      // Load ingredients
+      const { data: ingRows } = await supabase
+        .from("recipe_ingredients")
+        .select("*, ingredients(*)")
+        .eq("recipe_id", recipeId)
+        .order("id", { ascending: true });
+
+      ingredients = ingRows.map(r => ({
+        id: r.ingredient_id,
+        qty: r.quantity,
+        unit: r.unit
+      }));
+
+      renderIngredientList();
+
+      // Load steps
+      const { data: stepRows } = await supabase
+        .from("steps")
+        .select("*")
+        .eq("recipe_id", recipeId)
+        .order("step_number", { ascending: true });
+
+      steps = stepRows.map(s => s.instruction);
+
+      renderStepList();
+    }
+
+    /* -------------------------
+       INGREDIENT DROPDOWN
+    --------------------------*/
+
+    async function loadIngredientsDropdown() {
+      const data = await getIngredients();
+      const select = document.getElementById("ingredientSelect");
+
+      select.innerHTML = "<option value=''>-- Select --</option>";
+
+      data.forEach(i => {
+        const opt = document.createElement("option");
+        opt.value = i.id;
+
+        let label = i.name;
+        if (i.category) label = `${i.category} → ${label}`;
+        if (i.subcategory) label = `${i.category} → ${i.subcategory} → ${i.name}`;
+        if (i.subsubcategory) label = `${i.category} → ${i.subcategory} → ${i.subsubcategory} → ${i.name}`;
+
+        opt.textContent = label;
+        select.appendChild(opt);
+      });
+    }
+
+    function openIngredientPopup() {
+      window.open("add_ingredient.html", "_blank", "width=500,height=600");
+    }
+
+    /* -------------------------
+       INGREDIENT LIST
+    --------------------------*/
+
+    function addIngredientToList() {
+      const id = document.getElementById("ingredientSelect").value;
+      const qty = document.getElementById("ingredientQty").value.trim();
+      const unit = document.getElementById("ingredientUnit").value.trim();
+
+      if (!id) return alert("Select an ingredient");
+      if (!qty) return alert("Enter quantity");
+
+      ingredients.push({ id, qty, unit });
+
+      renderIngredientList();
+
+      document.getElementById("ingredientQty").value = "";
+      document.getElementById("ingredientUnit").value = "";
+    }
+
+    function renderIngredientList() {
+      const container = document.getElementById("ingredientList");
+      container.innerHTML = "";
+
+      ingredients.forEach((ing, idx) => {
+        const div = document.createElement("div");
+        div.className = "ingredient-row";
+        div.innerHTML = `
+          ${ing.qty} ${ing.unit} — Ingredient #${ing.id}
+          <span class="delete-btn" onclick="deleteIngredient(${idx})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteIngredient(index) {
+      ingredients.splice(index, 1);
+      renderIngredientList();
+    }
+
+    /* -------------------------
+       STEPS
+    --------------------------*/
+
+    function addStepToList() {
+      const instruction = document.getElementById("stepInstruction").value.trim();
+      if (!instruction) return;
+
+      steps.push(instruction);
+      renderStepList();
+
+      document.getElementById("stepInstruction").value = "";
+    }
+
+    function renderStepList() {
+      const container = document.getElementById("stepsList");
+      container.innerHTML = "";
+
+      steps.forEach((s, idx) => {
+        const div = document.createElement("div");
+        div.className = "step-row";
+        div.innerHTML = `
+          ${idx + 1}. ${s}
+          <span class="delete-btn" onclick="deleteStep(${idx})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteStep(index) {
+      steps.splice(index, 1);
+      renderStepList();
+    }
+
+    /* -------------------------
+       SAVE CHANGES
+    --------------------------*/
+
+    async function saveRecipe() {
+      const name = document.getElementById("recipeName").value.trim();
+      const category = document.getElementById("recipeCategory").value.trim();
+      const notes = document.getElementById("recipeNotes").value.trim();
+
+      if (!name) return alert("Recipe name required");
+
+      // Update recipe basics
+      await supabase
+        .from("recipes")
+        .update({ name, category, notes })
+        .eq("id", recipeId);
+
+      // Delete old ingredients
+      await supabase
+        .from("recipe_ingredients")
+        .delete()
+        .eq("recipe_id", recipeId);
+
+      // Insert new ingredients
+      for (const ing of ingredients) {
+        await addRecipeIngredient({
+          recipe_id: recipeId,
+          ingredient_id: ing.id,
+          quantity: ing.qty,
+          unit: ing.unit
+        });
+      }
+
+      // Delete old steps
+      await supabase
+        .from("steps")
+        .delete()
+        .eq("recipe_id", recipeId);
+
+      // Insert new steps
+      for (let i = 0; i < steps.length; i++) {
+        await addRecipeStep({
+          recipe_id: recipeId,
+          step_number: i + 1,
+          instruction: steps[i]
+        });
+      }
+
+      alert("Recipe updated");
+      window.location.href = `view.html?id=${recipeId}`;
+    }
+  </script>
 
 </body>
 </html>
