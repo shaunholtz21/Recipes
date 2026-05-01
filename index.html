@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>All Recipes</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .recipe { padding: 10px; border-bottom: 1px solid #ccc; }
+    a { text-decoration: none; color: blue; }
+  </style>
+</head>
+<body>
+
+<h1>All Recipes</h1>
+<div id="recipes"></div>
+
+<script>
+async function loadRecipes() {
+  const response = await fetch("data/recipes.json");
+  const recipes = await response.json();
+
+  const container = document.getElementById("recipes");
+
+  recipes.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "recipe";
+    div.innerHTML = `
+      <strong>${r.name}</strong><br>
+      Category: ${r.category || "None"}<br>
+      <a href="view.html?id=${r.id}">View</a> |
+      <a href="edit.html?id=${r.id}">Edit</a>
+    `;
+    container.appendChild(div);
+  });
+}
+
+loadRecipes();
+</script>
+
+</body>
+</html>
