@@ -79,10 +79,17 @@
   <div id="step2" class="step">
     <h3>Ingredients</h3>
 
-    <label>Select Ingredient</label>
-    <select id="ingredientSelect"></select>
+    <label>Category</label>
+    <select id="categorySelect" onchange="loadSubcategories()"></select>
 
-    <button onclick="openIngredientPopup()">+ Add Ingredient</button>
+    <label>Subcategory</label>
+    <select id="subcategorySelect" onchange="loadSubSubcategories()"></select>
+
+    <label>Sub‑subcategory</label>
+    <select id="subsubcategorySelect" onchange="loadIngredientNames()"></select>
+
+    <label>Ingredient</label>
+    <select id="ingredientSelect"></select>
 
     <label>Quantity</label>
     <input id="ingredientQty" type="text">
@@ -147,7 +154,7 @@
     let steps = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
-      await loadIngredients();
+      await loadCategories();
     });
 
     function showStep(n) {
@@ -167,32 +174,66 @@
     }
 
     /* -------------------------
-       INGREDIENT HANDLING
+       CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
     --------------------------*/
 
-    async function loadIngredients() {
-      const data = await getIngredients();
-      const select = document.getElementById("ingredientSelect");
+    async function loadCategories() {
+      const cats = await getCategories();
+      const sel = document.getElementById("categorySelect");
 
-      select.innerHTML = "<option value=''>-- Select --</option>";
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      cats.forEach(c => sel.innerHTML += `<option>${c}</option>`);
 
-      data.forEach(i => {
-        const opt = document.createElement("option");
-        opt.value = i.id;
-
-        let label = i.name;
-        if (i.category) label = `${i.category} → ${label}`;
-        if (i.subcategory) label = `${i.category} → ${i.subcategory} → ${i.name}`;
-        if (i.subsubcategory) label = `${i.category} → ${i.subcategory} → ${i.subsubcategory} → ${i.name}`;
-
-        opt.textContent = label;
-        select.appendChild(opt);
-      });
+      document.getElementById("subcategorySelect").innerHTML = "";
+      document.getElementById("subsubcategorySelect").innerHTML = "";
+      document.getElementById("ingredientSelect").innerHTML = "";
     }
 
-    function openIngredientPopup() {
-      window.open("add_ingredient.html", "_blank", "width=500,height=600");
+    async function loadSubcategories() {
+      const cat = document.getElementById("categorySelect").value;
+      const subs = await getSubcategories(cat);
+      const sel = document.getElementById("subcategorySelect");
+
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
+
+      document.getElementById("subsubcategorySelect").innerHTML = "";
+      document.getElementById("ingredientSelect").innerHTML = "";
     }
+
+    async function loadSubSubcategories() {
+      const cat = document.getElementById("categorySelect").value;
+      const sub = document.getElementById("subcategorySelect").value;
+
+      const subs = await getSubSubcategories(cat, sub);
+      const sel = document.getElementById("subsubcategorySelect");
+
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
+
+      document.getElementById("ingredientSelect").innerHTML = "";
+    }
+
+    async function loadIngredientNames() {
+      const cat = document.getElementById("categorySelect").value;
+      const sub = document.getElementById("subcategorySelect").value;
+      const subsub = document.getElementById("subsubcategorySelect").value;
+
+      const all = await getIngredients();
+      const filtered = all.filter(i =>
+        i.category === cat &&
+        (sub ? i.subcategory === sub : true) &&
+        (subsub ? i.subsubcategory === subsub : true)
+      );
+
+      const sel = document.getElementById("ingredientSelect");
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      filtered.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+    }
+
+    /* -------------------------
+       INGREDIENT LIST
+    --------------------------*/
 
     async function addIngredientToList() {
       const id = document.getElementById("ingredientSelect").value;
@@ -271,10 +312,8 @@
 
       if (!name) return alert("Recipe name required");
 
-      // Insert recipe
       const recipe = await addRecipeBasics({ name, category, notes });
 
-      // Insert ingredients
       for (const ing of ingredients) {
         await addRecipeIngredient({
           recipe_id: recipe.id,
@@ -284,7 +323,6 @@
         });
       }
 
-      // Insert steps
       for (let i = 0; i < steps.length; i++) {
         await addRecipeStep({
           recipe_id: recipe.id,
