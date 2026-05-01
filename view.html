@@ -4,64 +4,127 @@
   <meta charset="UTF-8">
   <title>View Recipe</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-bottom: 5px;
+    }
+
+    .section {
+      margin-top: 25px;
+    }
+
+    .ingredient-item, .step-item {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      margin-top: 5px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
 
-<a href="index.html">← Back</a>
-<h1 id="title"></h1>
-<p id="category"></p>
-<p id="notes"></p>
+  <h2 id="recipeName"></h2>
+  <p id="recipeCategory"></p>
+  <p id="recipeNotes"></p>
 
-<h2>Ingredients</h2>
-<ul id="ingredients"></ul>
+  <div class="section">
+    <h3>Ingredients</h3>
+    <div id="ingredientsList"></div>
+  </div>
 
-<h2>Steps</h2>
-<ol id="steps"></ol>
+  <div class="section">
+    <h3>Steps</h3>
+    <div id="stepsList"></div>
+  </div>
 
-<script>
-function getQueryParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
-}
+  <button onclick="editRecipe()">Edit Recipe</button>
+  <button onclick="window.location.href='index.html'">Back to Recipes</button>
 
-async function loadRecipe() {
-  const id = getQueryParam("id");
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
 
-  const recipes = await (await fetch("data/recipes.json")).json();
-  const ingredients = await (await fetch("data/ingredients.json")).json();
-  const recipeIngredients = await (await fetch("data/recipe_ingredients.json")).json();
-  const steps = await (await fetch("data/steps.json")).json();
+  <script>
+    // Get recipe ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const recipeId = params.get("id");
 
-  const recipe = recipes.find(r => r.id == id);
+    document.addEventListener("DOMContentLoaded", loadRecipe);
 
-  document.getElementById("title").textContent = recipe.name;
-  document.getElementById("category").textContent = "Category: " + (recipe.category || "None");
-  document.getElementById("notes").textContent = recipe.notes || "";
+    async function loadRecipe() {
+      if (!recipeId) {
+        alert("No recipe ID provided");
+        return;
+      }
 
-  const ingList = document.getElementById("ingredients");
-  recipeIngredients
-    .filter(ri => ri.recipe_id == id)
-    .forEach(ri => {
-      const ing = ingredients.find(i => i.id == ri.ingredient_id);
-      const li = document.createElement("li");
-      li.textContent = `${ri.quantity} ${ri.unit} ${ing.name}`;
-      ingList.appendChild(li);
-    });
+      // Fetch recipe basics
+      const recipe = await getRecipe(recipeId);
 
-  const stepList = document.getElementById("steps");
-  steps
-    .filter(s => s.recipe_id == id)
-    .sort((a,b) => a.step_number - b.step_number)
-    .forEach(s => {
-      const li = document.createElement("li");
-      li.textContent = s.instruction;
-      stepList.appendChild(li);
-    });
-}
+      document.getElementById("recipeName").textContent = recipe.name;
+      document.getElementById("recipeCategory").textContent = recipe.category || "";
+      document.getElementById("recipeNotes").textContent = recipe.notes || "";
 
-loadRecipe();
-</script>
+      // Fetch ingredients
+      const { data: ingredients, error: ingErr } = await supabase
+        .from("recipe_ingredients")
+        .select("*, ingredients(*)")
+        .eq("recipe_id", recipeId)
+        .order("id", { ascending: true });
+
+      if (ingErr) console.error(ingErr);
+
+      const ingList = document.getElementById("ingredientsList");
+      ingList.innerHTML = "";
+
+      ingredients.forEach(item => {
+        const ing = item.ingredients;
+
+        let label = ing.name;
+        if (ing.category) label = `${ing.category} → ${label}`;
+        if (ing.subcategory) label = `${ing.category} → ${ing.subcategory} → ${ing.name}`;
+        if (ing.subsubcategory) label = `${ing.category} → ${ing.subcategory} → ${ing.subsubcategory} → ${ing.name}`;
+
+        const div = document.createElement("div");
+        div.className = "ingredient-item";
+        div.textContent = `${item.quantity} ${item.unit} — ${label}`;
+        ingList.appendChild(div);
+      });
+
+      // Fetch steps
+      const { data: steps, error: stepErr } = await supabase
+        .from("steps")
+        .select("*")
+        .eq("recipe_id", recipeId)
+        .order("step_number", { ascending: true });
+
+      if (stepErr) console.error(stepErr);
+
+      const stepList = document.getElementById("stepsList");
+      stepList.innerHTML = "";
+
+      steps.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "step-item";
+        div.textContent = `${s.step_number}. ${s.instruction}`;
+        stepList.appendChild(div);
+      });
+    }
+
+    function editRecipe() {
+      window.location.href = `edit.html?id=${recipeId}`;
+    }
+  </script>
 
 </body>
 </html>
