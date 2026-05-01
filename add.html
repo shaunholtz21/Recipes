@@ -221,7 +221,7 @@
 
       const div = document.createElement("div");
       div.className = "ingredient-row";
-      div.textContent = `${qty} ${unit} — Ingredient #${id}`;
+      div.textContent = `${qty} ${unit} — ${ingredientName}`;
       document.getElementById("ingredientList").appendChild(div);
 
       document.getElementById("ingredientQty").value = "";
