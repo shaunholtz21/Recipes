@@ -211,6 +211,7 @@
     /* INGREDIENT LIST */
     function addIngredientToList() {
       const id = document.getElementById("ingredientSelect").value;
+      const name = document.getElementById("ingredientSelect").selectedOptions[0].textContent;
       const qty = document.getElementById("ingredientQty").value.trim();
       const unit = document.getElementById("ingredientUnit").value.trim();
 
