@@ -1,1 +1,52 @@
+name: Export Supabase Recipes
 
+on:
+  schedule:
+    - cron: "0 * * * *"   # runs every hour
+  workflow_dispatch:       # allows manual run
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+
+      - name: Export recipes
+        run: |
+          mkdir -p data
+          curl -s \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://qhlwooojylpwmqslqjua.supabase.co/rest/v1/recipes?select=*" \
+            | jq '.' > data/recipes.json
+
+      - name: Export ingredients
+        run: |
+          curl -s \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://qhlwooojylpwmqslqjua.supabase.co/rest/v1/ingredients?select=*" \
+            | jq '.' > data/ingredients.json
+
+      - name: Export steps
+        run: |
+          curl -s \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://qhlwooojylpwmqslqjua.supabase.co/rest/v1/steps?select=*" \
+            | jq '.' > data/steps.json
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/*.json
+          git commit -m "Updated recipe data" || echo "No changes to commit"
+          git push
