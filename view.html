@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>View Recipe</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+  </style>
+</head>
+<body>
+
+<a href="index.html">← Back</a>
+<h1 id="title"></h1>
+<p id="category"></p>
+<p id="notes"></p>
+
+<h2>Ingredients</h2>
+<ul id="ingredients"></ul>
+
+<h2>Steps</h2>
+<ol id="steps"></ol>
+
+<script>
+function getQueryParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+async function loadRecipe() {
+  const id = getQueryParam("id");
+
+  const recipes = await (await fetch("data/recipes.json")).json();
+  const ingredients = await (await fetch("data/ingredients.json")).json();
+  const recipeIngredients = await (await fetch("data/recipe_ingredients.json")).json();
+  const steps = await (await fetch("data/steps.json")).json();
+
+  const recipe = recipes.find(r => r.id == id);
+
+  document.getElementById("title").textContent = recipe.name;
+  document.getElementById("category").textContent = "Category: " + (recipe.category || "None");
+  document.getElementById("notes").textContent = recipe.notes || "";
+
+  const ingList = document.getElementById("ingredients");
+  recipeIngredients
+    .filter(ri => ri.recipe_id == id)
+    .forEach(ri => {
+      const ing = ingredients.find(i => i.id == ri.ingredient_id);
+      const li = document.createElement("li");
+      li.textContent = `${ri.quantity} ${ri.unit} ${ing.name}`;
+      ingList.appendChild(li);
+    });
+
+  const stepList = document.getElementById("steps");
+  steps
+    .filter(s => s.recipe_id == id)
+    .sort((a,b) => a.step_number - b.step_number)
+    .forEach(s => {
+      const li = document.createElement("li");
+      li.textContent = s.instruction;
+      stepList.appendChild(li);
+    });
+}
+
+loadRecipe();
+</script>
+
+</body>
+</html>
