@@ -67,7 +67,16 @@
   <div class="section">
     <h3>Ingredients</h3>
 
-    <label>Select Ingredient</label>
+    <label>Category</label>
+    <select id="categorySelect" onchange="loadSubcategories()"></select>
+
+    <label>Subcategory</label>
+    <select id="subcategorySelect" onchange="loadSubSubcategories()"></select>
+
+    <label>Sub‑subcategory</label>
+    <select id="subsubcategorySelect" onchange="loadIngredientNames()"></select>
+
+    <label>Ingredient</label>
     <select id="ingredientSelect"></select>
 
     <button onclick="openIngredientPopup()">+ Add Ingredient</button>
@@ -111,7 +120,7 @@
     let steps = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
-      await loadIngredientsDropdown();
+      await loadCategories();
       await loadRecipe();
     });
 
@@ -125,14 +134,12 @@
         return;
       }
 
-      // Load basics
       const recipe = await getRecipe(recipeId);
 
       document.getElementById("recipeName").value = recipe.name;
       document.getElementById("recipeCategory").value = recipe.category || "";
       document.getElementById("recipeNotes").value = recipe.notes || "";
 
-      // Load ingredients
       const { data: ingRows } = await supabase
         .from("recipe_ingredients")
         .select("*, ingredients(*)")
@@ -147,7 +154,6 @@
 
       renderIngredientList();
 
-      // Load steps
       const { data: stepRows } = await supabase
         .from("steps")
         .select("*")
@@ -160,27 +166,77 @@
     }
 
     /* -------------------------
-       INGREDIENT DROPDOWN
+       CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
+       (same behavior as add.html, skip empty levels)
     --------------------------*/
 
-    async function loadIngredientsDropdown() {
-      const data = await getIngredients();
-      const select = document.getElementById("ingredientSelect");
+    async function loadCategories() {
+      const cats = await getCategories();
+      const sel = document.getElementById("categorySelect");
 
-      select.innerHTML = "<option value=''>-- Select --</option>";
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      cats.forEach(c => sel.innerHTML += `<option>${c}</option>`);
 
-      data.forEach(i => {
-        const opt = document.createElement("option");
-        opt.value = i.id;
+      document.getElementById("subcategorySelect").innerHTML = "";
+      document.getElementById("subsubcategorySelect").innerHTML = "";
+      document.getElementById("ingredientSelect").innerHTML = "";
+    }
 
-        let label = i.name;
-        if (i.category) label = `${i.category} → ${label}`;
-        if (i.subcategory) label = `${i.category} → ${i.subcategory} → ${i.name}`;
-        if (i.subsubcategory) label = `${i.category} → ${i.subcategory} → ${i.subsubcategory} → ${i.name}`;
+    async function loadSubcategories() {
+      const cat = document.getElementById("categorySelect").value;
+      const subs = await getSubcategories(cat);
+      const sel = document.getElementById("subcategorySelect");
 
-        opt.textContent = label;
-        select.appendChild(opt);
-      });
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+
+      if (subs.length === 0) {
+        document.getElementById("subcategorySelect").innerHTML = "";
+        document.getElementById("subsubcategorySelect").innerHTML = "";
+        loadIngredientNames();
+        return;
+      }
+
+      subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
+
+      document.getElementById("subsubcategorySelect").innerHTML = "";
+      document.getElementById("ingredientSelect").innerHTML = "";
+    }
+
+    async function loadSubSubcategories() {
+      const cat = document.getElementById("categorySelect").value;
+      const sub = document.getElementById("subcategorySelect").value;
+
+      const subs = await getSubSubcategories(cat, sub);
+      const sel = document.getElementById("subsubcategorySelect");
+
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+
+      if (subs.length === 0) {
+        document.getElementById("subsubcategorySelect").innerHTML = "";
+        loadIngredientNames();
+        return;
+      }
+
+      subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
+
+      document.getElementById("ingredientSelect").innerHTML = "";
+    }
+
+    async function loadIngredientNames() {
+      const cat = document.getElementById("categorySelect").value;
+      const sub = document.getElementById("subcategorySelect").value;
+      const subsub = document.getElementById("subsubcategorySelect").value;
+
+      const all = await getIngredients();
+      const filtered = all.filter(i =>
+        i.category === cat &&
+        (sub ? i.subcategory === sub : true) &&
+        (subsub ? i.subsubcategory === subsub : true)
+      );
+
+      const sel = document.getElementById("ingredientSelect");
+      sel.innerHTML = "<option value=''>-- Select --</option>";
+      filtered.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
     }
 
     function openIngredientPopup() {
@@ -272,19 +328,16 @@
 
       if (!name) return alert("Recipe name required");
 
-      // Update recipe basics
       await supabase
         .from("recipes")
         .update({ name, category, notes })
         .eq("id", recipeId);
 
-      // Delete old ingredients
       await supabase
         .from("recipe_ingredients")
         .delete()
         .eq("recipe_id", recipeId);
 
-      // Insert new ingredients
       for (const ing of ingredients) {
         await addRecipeIngredient({
           recipe_id: recipeId,
@@ -294,13 +347,11 @@
         });
       }
 
-      // Delete old steps
       await supabase
         .from("steps")
         .delete()
         .eq("recipe_id", recipeId);
 
-      // Insert new steps
       for (let i = 0; i < steps.length; i++) {
         await addRecipeStep({
           recipe_id: recipeId,
