@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Recipe</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
+</head>
+<body>
+
+<a href="index.html">← Back</a>
+<h1>Edit Recipe</h1>
+
+<form id="recipeForm">
+  <label>Name:</label><br>
+  <input type="text" id="name"><br><br>
+
+  <label>Category:</label><br>
+  <input type="text" id="category"><br><br>
+
+  <label>Notes:</label><br>
+  <textarea id="notes"></textarea><br><br>
+
+  <button type="submit">Save Changes</button>
+</form>
+
+<script>
+function getQueryParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+async function loadRecipe() {
+  const id = getQueryParam("id");
+  const recipe = await getRecipe(id);
+
+  document.getElementById("name").value = recipe.name;
+  document.getElementById("category").value = recipe.category || "";
+  document.getElementById("notes").value = recipe.notes || "";
+}
+
+document.getElementById("recipeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const id = getQueryParam("id");
+
+  await supabase
+    .from("recipes")
+    .update({
+      name: document.getElementById("name").value,
+      category: document.getElementById("category").value,
+      notes: document.getElementById("notes").value
+    })
+    .eq("id", id);
+
+  alert("Recipe updated!");
+  window.location.href = "index.html";
+});
+
+loadRecipe();
+</script>
+
+</body>
+</html>
