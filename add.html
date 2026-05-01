@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Add Recipe</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
+</head>
+<body>
+
+<a href="index.html">← Back</a>
+<h1>Add Recipe</h1>
+
+<form id="recipeForm">
+  <label>Name:</label><br>
+  <input type="text" id="name"><br><br>
+
+  <label>Category:</label><br>
+  <input type="text" id="category"><br><br>
+
+  <label>Notes:</label><br>
+  <textarea id="notes"></textarea><br><br>
+
+  <button type="submit">Save Recipe</button>
+</form>
+
+<script>
+document.getElementById("recipeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const recipe = {
+    name: document.getElementById("name").value,
+    category: document.getElementById("category").value,
+    notes: document.getElementById("notes").value
+  };
+
+  const saved = await addRecipe(recipe);
+
+  alert("Recipe saved!");
+  window.location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
