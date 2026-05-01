@@ -208,26 +208,35 @@
       window.open("add_ingredient.html", "_blank", "width=500,height=600");
     }
 
-    /* INGREDIENT LIST */
-    function addIngredientToList() {
-      const id = document.getElementById("ingredientSelect").value;
-      const name = document.getElementById("ingredientSelect").selectedOptions[0].textContent;
-      const qty = document.getElementById("ingredientQty").value.trim();
-      const unit = document.getElementById("ingredientUnit").value.trim();
+function addIngredientToList() {
+  const select = document.getElementById("ingredientSelect");
+  const id = select.value;
+  const option = select.selectedOptions[0];
 
-      if (!id) return alert("Select an ingredient");
-      if (!qty) return alert("Enter quantity");
+  if (!id || !option) {
+    alert("Select an ingredient");
+    return;
+  }
 
-      ingredients.push({ id, qty, unit });
+  const name = option.textContent;
+  const qty = document.getElementById("ingredientQty").value.trim();
+  const unit = document.getElementById("ingredientUnit").value.trim();
 
-      const div = document.createElement("div");
-      div.className = "ingredient-row";
-      div.textContent = `${qty} ${unit} — ${ingredientName}`;
-      document.getElementById("ingredientList").appendChild(div);
+  if (!qty) {
+    alert("Enter quantity");
+    return;
+  }
 
-      document.getElementById("ingredientQty").value = "";
-      document.getElementById("ingredientUnit").value = "";
-    }
+  ingredients.push({ id, name, qty, unit });
+
+  const div = document.createElement("div");
+  div.className = "ingredient-row";
+  div.textContent = `${qty} ${unit} — ${name}`;
+  document.getElementById("ingredientList").appendChild(div);
+
+  document.getElementById("ingredientQty").value = "";
+  document.getElementById("ingredientUnit").value = "";
+}
 
     /* STEPS */
     function addStepToList() {
