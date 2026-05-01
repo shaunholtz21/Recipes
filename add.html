@@ -175,6 +175,7 @@
 
     /* -------------------------
        CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
+       (Option B: Skip empty levels)
     --------------------------*/
 
     async function loadCategories() {
@@ -195,6 +196,15 @@
       const sel = document.getElementById("subcategorySelect");
 
       sel.innerHTML = "<option value=''>-- Select --</option>";
+
+      // Skip if no subcategories exist
+      if (subs.length === 0) {
+        document.getElementById("subcategorySelect").innerHTML = "";
+        document.getElementById("subsubcategorySelect").innerHTML = "";
+        loadIngredientNames();
+        return;
+      }
+
       subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
 
       document.getElementById("subsubcategorySelect").innerHTML = "";
@@ -209,6 +219,14 @@
       const sel = document.getElementById("subsubcategorySelect");
 
       sel.innerHTML = "<option value=''>-- Select --</option>";
+
+      // Skip if no sub-subcategories exist
+      if (subs.length === 0) {
+        document.getElementById("subsubcategorySelect").innerHTML = "";
+        loadIngredientNames();
+        return;
+      }
+
       subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
 
       document.getElementById("ingredientSelect").innerHTML = "";
