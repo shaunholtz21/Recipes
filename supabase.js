@@ -94,10 +94,17 @@ async function addIngredient({ name, category, subcategory, subsubcategory }) {
 --------------------------------------------------------*/
 
 // Insert recipe basics
-async function addRecipeBasics({ name, category, notes }) {
+async function addRecipeBasics({ name, category, notes, prep_time, cook_time, total_time }) {
   const { data, error } = await supabase
     .from("recipes")
-    .insert([{ name, category, notes }])
+    .insert([{
+      name,
+      category,
+      notes,
+      prep_time,
+      cook_time,
+      total_time
+    }])
     .select()
     .single();
 
