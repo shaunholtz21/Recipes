@@ -33,17 +33,10 @@
 
     button {
       padding: 8px 12px;
-      margin-top: 20px;
       cursor: pointer;
     }
 
-    .ingredient-row {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      margin-top: 10px;
-    }
-
-    .step-row {
+    .ingredient-row, .step-row {
       padding: 8px;
       border-bottom: 1px solid #ddd;
       margin-top: 10px;
@@ -65,7 +58,7 @@
     <input id="recipeName" type="text">
 
     <label>Recipe Category</label>
-    <input id="recipeCategory" type="text" placeholder="e.g., Dinner, Dessert">
+    <input id="recipeCategory" type="text">
 
     <label>Notes</label>
     <textarea id="recipeNotes" rows="4"></textarea>
@@ -95,9 +88,12 @@
     <input id="ingredientQty" type="text">
 
     <label>Unit</label>
-    <input id="ingredientUnit" type="text" placeholder="e.g., cups, tbsp, grams">
+    <input id="ingredientUnit" type="text">
 
-    <button onclick="addIngredientToList()">Add Ingredient</button>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button onclick="addIngredientToList()">Add Ingredient</button>
+      <button onclick="openIngredientPopup()">+ Add New Ingredient</button>
+    </div>
 
     <h4>Ingredient List</h4>
     <div id="ingredientList"></div>
@@ -175,7 +171,7 @@
 
     /* -------------------------
        CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
-       (Option B: Skip empty levels)
+       (skip empty levels)
     --------------------------*/
 
     async function loadCategories() {
@@ -197,9 +193,8 @@
 
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
-      // Skip if no subcategories exist
       if (subs.length === 0) {
-        document.getElementById("subcategorySelect").innerHTML = "";
+        sel.innerHTML = "";
         document.getElementById("subsubcategorySelect").innerHTML = "";
         loadIngredientNames();
         return;
@@ -220,9 +215,8 @@
 
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
-      // Skip if no sub-subcategories exist
       if (subs.length === 0) {
-        document.getElementById("subsubcategorySelect").innerHTML = "";
+        sel.innerHTML = "";
         loadIngredientNames();
         return;
       }
@@ -249,11 +243,15 @@
       filtered.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
     }
 
+    function openIngredientPopup() {
+      window.open("add_ingredient.html", "_blank", "width=500,height=600");
+    }
+
     /* -------------------------
        INGREDIENT LIST
     --------------------------*/
 
-    async function addIngredientToList() {
+    function addIngredientToList() {
       const id = document.getElementById("ingredientSelect").value;
       const qty = document.getElementById("ingredientQty").value.trim();
       const unit = document.getElementById("ingredientUnit").value.trim();
@@ -273,7 +271,7 @@
     }
 
     /* -------------------------
-       STEP HANDLING
+       STEPS
     --------------------------*/
 
     function addStepToList() {
