@@ -29,7 +29,6 @@
 
     button {
       padding: 8px 12px;
-      margin-top: 20px;
       cursor: pointer;
     }
 
@@ -79,15 +78,15 @@
     <label>Ingredient</label>
     <select id="ingredientSelect"></select>
 
-    <button onclick="openIngredientPopup()">+ Add Ingredient</button>
-
     <label>Quantity</label>
     <input id="ingredientQty" type="text">
 
     <label>Unit</label>
     <input id="ingredientUnit" type="text">
 
-    <button onclick="addIngredientToList()">Add Ingredient</button>
+    <div style="margin-top: 20px;">
+      <button onclick="addIngredientToList()">Add Ingredient</button>
+    </div>
 
     <h4>Ingredient List</h4>
     <div id="ingredientList"></div>
@@ -167,7 +166,7 @@
 
     /* -------------------------
        CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
-       (same behavior as add.html, skip empty levels)
+       (skip empty levels)
     --------------------------*/
 
     async function loadCategories() {
@@ -190,7 +189,7 @@
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
       if (subs.length === 0) {
-        document.getElementById("subcategorySelect").innerHTML = "";
+        sel.innerHTML = "";
         document.getElementById("subsubcategorySelect").innerHTML = "";
         loadIngredientNames();
         return;
@@ -212,7 +211,7 @@
       sel.innerHTML = "<option value=''>-- Select --</option>";
 
       if (subs.length === 0) {
-        document.getElementById("subsubcategorySelect").innerHTML = "";
+        sel.innerHTML = "";
         loadIngredientNames();
         return;
       }
@@ -237,10 +236,6 @@
       const sel = document.getElementById("ingredientSelect");
       sel.innerHTML = "<option value=''>-- Select --</option>";
       filtered.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
-    }
-
-    function openIngredientPopup() {
-      window.open("add_ingredient.html", "_blank", "width=500,height=600");
     }
 
     /* -------------------------
