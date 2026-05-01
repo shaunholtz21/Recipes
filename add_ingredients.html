@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Add Ingredient</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    select, input {
+      width: 250px;
+      padding: 6px;
+      margin-top: 5px;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    /* Modal styling */
+    .modal-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+    }
+
+    .modal input {
+      width: 90%;
+      margin-top: 10px;
+    }
+
+    .modal button {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Add New Ingredient</h2>
+
+  <!-- CATEGORY -->
+  <label>Category</label>
+  <select id="categorySelect"></select>
+  <button onclick="openModal('category')">+ Add New</button>
+
+  <!-- SUBCATEGORY -->
+  <label>Subcategory</label>
+  <select id="subcategorySelect"></select>
+  <button onclick="openModal('subcategory')">+ Add New</button>
+
+  <!-- SUB-SUBCATEGORY -->
+  <label>Sub‑subcategory</label>
+  <select id="subsubcategorySelect"></select>
+  <button onclick="openModal('subsubcategory')">+ Add New</button>
+
+  <!-- INGREDIENT NAME -->
+  <label>Ingredient Name</label>
+  <input id="ingredientName" type="text" placeholder="e.g., Sirloin">
+
+  <br><br>
+  <button onclick="saveIngredient()">Save Ingredient</button>
+
+  <!-- MODAL -->
+  <div id="modalBg" class="modal-bg">
+    <div class="modal">
+      <h3 id="modalTitle"></h3>
+      <input id="modalInput" type="text" placeholder="Enter value">
+      <br>
+      <button onclick="saveModalValue()">Save</button>
+      <button onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    let modalType = null;
+
+    // Load categories on page load
+    document.addEventListener("DOMContentLoaded", async () => {
+      await refreshCategories();
+    });
+
+    async function refreshCategories() {
+      const categories = await getCategories();
+      const select = document.getElementById("categorySelect");
+
+      select.innerHTML = "<option value=''>-- Select --</option>";
+      categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+      });
+
+      select.onchange = refreshSubcategories;
+    }
+
+    async function refreshSubcategories() {
+      const category = document.getElementById("categorySelect").value;
+      const subcategories = await getSubcategories(category);
+      const select = document.getElementById("subcategorySelect");
+
+      select.innerHTML = "<option value=''>-- Select --</option>";
+      subcategories.forEach(sc => {
+        const opt = document.createElement("option");
+        opt.value = sc;
+        opt.textContent = sc;
+        select.appendChild(opt);
+      });
+
+      select.onchange = refreshSubSubcategories;
+      refreshSubSubcategories();
+    }
+
+    async function refreshSubSubcategories() {
+      const category = document.getElementById("categorySelect").value;
+      const subcategory = document.getElementById("subcategorySelect").value;
+
+      const subsubs = await getSubSubcategories(category, subcategory);
+      const select = document.getElementById("subsubcategorySelect");
+
+      select.innerHTML = "<option value=''>-- Select --</option>";
+      subsubs.forEach(ss => {
+        const opt = document.createElement("option");
+        opt.value = ss;
+        opt.textContent = ss;
+        select.appendChild(opt);
+      });
+    }
+
+    /* -------------------------
+       MODAL HANDLING
+    --------------------------*/
+
+    function openModal(type) {
+      modalType = type;
+
+      const modalTitle = document.getElementById("modalTitle");
+
+      if (type === "category") modalTitle.textContent = "Add New Category";
+      if (type === "subcategory") modalTitle.textContent = "Add New Subcategory";
+      if (type === "subsubcategory") modalTitle.textContent = "Add New Sub‑subcategory";
+
+      document.getElementById("modalInput").value = "";
+      document.getElementById("modalBg").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modalBg").style.display = "none";
+    }
+
+    async function saveModalValue() {
+      const value = document.getElementById("modalInput").value.trim();
+      if (!value) return;
+
+      const category = document.getElementById("categorySelect").value;
+      const subcategory = document.getElementById("subcategorySelect").value;
+
+      // Insert a placeholder ingredient to store the new category/subcategory
+      if (modalType === "category") {
+        await addIngredient({ name: "(placeholder)", category: value });
+      }
+
+      if (modalType === "subcategory") {
+        if (!category) return alert("Select a category first");
+        await addIngredient({ name: "(placeholder)", category, subcategory: value });
+      }
+
+      if (modalType === "subsubcategory") {
+        if (!category || !subcategory) return alert("Select category + subcategory first");
+        await addIngredient({ name: "(placeholder)", category, subcategory, subsubcategory: value });
+      }
+
+      closeModal();
+      await refreshCategories();
+      await refreshSubcategories();
+      await refreshSubSubcategories();
+    }
+
+    /* -------------------------
+       SAVE INGREDIENT
+    --------------------------*/
+
+    async function saveIngredient() {
+      const name = document.getElementById("ingredientName").value.trim();
+      const category = document.getElementById("categorySelect").value;
+      const subcategory = document.getElementById("subcategorySelect").value;
+      const subsubcategory = document.getElementById("subsubcategorySelect").value;
+
+      if (!name) return alert("Ingredient name required");
+
+      await addIngredient({ name, category, subcategory, subsubcategory });
+
+      alert("Ingredient saved");
+      window.close();
+    }
+  </script>
+
+</body>
+</html>
