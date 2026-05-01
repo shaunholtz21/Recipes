@@ -290,7 +290,15 @@ function addIngredientToList() {
 
       if (!name) return alert("Recipe name required");
 
-      const recipe = await addRecipeBasics({ name, category, notes });
+      const recipe = await addRecipeBasics({
+        name,
+        category,
+        notes,
+        prep_time: document.getElementById("prepTime").value.trim(),
+        cook_time: document.getElementById("cookTime").value.trim(),
+        total_time: document.getElementById("totalTime").value.trim()
+});
+
 
       for (const ing of ingredients) {
         await addRecipeIngredient({
