@@ -3,43 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <title>Add Recipe</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="supabase.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .ingredient-row {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      margin-top: 10px;
+    }
+
+    .step-row {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      margin-top: 10px;
+    }
+
+    .nav-buttons {
+      margin-top: 20px;
+    }
+  </style>
 </head>
+
 <body>
 
-<a href="index.html">← Back</a>
-<h1>Add Recipe</h1>
+  <h2>Add New Recipe</h2>
 
-<form id="recipeForm">
-  <label>Name:</label><br>
-  <input type="text" id="name"><br><br>
+  <!-- STEP 1: BASICS -->
+  <div id="step1" class="step active">
+    <label>Recipe Name</label>
+    <input id="recipeName" type="text">
 
-  <label>Category:</label><br>
-  <input type="text" id="category"><br><br>
+    <label>Recipe Category</label>
+    <input id="recipeCategory" type="text" placeholder="e.g., Dinner, Dessert">
 
-  <label>Notes:</label><br>
-  <textarea id="notes"></textarea><br><br>
+    <label>Notes</label>
+    <textarea id="recipeNotes" rows="4"></textarea>
 
-  <button type="submit">Save Recipe</button>
-</form>
+    <div class="nav-buttons">
+      <button onclick="nextStep()">Next →</button>
+    </div>
+  </div>
 
-<script>
-document.getElementById("recipeForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+  <!-- STEP 2: INGREDIENTS -->
+  <div id="step2" class="step">
+    <h3>Ingredients</h3>
 
-  const recipe = {
-    name: document.getElementById("name").value,
-    category: document.getElementById("category").value,
-    notes: document.getElementById("notes").value
-  };
+    <label>Select Ingredient</label>
+    <select id="ingredientSelect"></select>
 
-  const saved = await addRecipe(recipe);
+    <button onclick="openIngredientPopup()">+ Add Ingredient</button>
 
-  alert("Recipe saved!");
-  window.location.href = "index.html";
-});
-</script>
+    <label>Quantity</label>
+    <input id="ingredientQty" type="text">
 
-</body>
-</html>
+    <label>Unit</label>
+    <input id="ingredientUnit" type="text" placeholder="e.g., cups, tbsp, grams">
+
+    <button onclick="addIngredientToList()">Add Ingredient</button>
+
+    <h4>Ingredient List</h4>
+    <div id="ingredientList"></div>
+
+    <div class="nav-buttons">
+      <button onclick="prevStep()">← Back</button>
+      <button onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: STEPS -->
+  <div id="step3" class="step">
+    <h3>Steps</h3>
+
+    <label>Instruction</label>
+    <textarea id="stepInstruction" rows="3"></textarea>
+
+    <button onclick="addStepToList()">Add Step</button>
+
+    <h4>Steps</h4>
+    <div id="stepsList"></div>
+
+    <div class="nav-buttons">
+      <button onclick="prevStep()">← Back</button>
+      <button onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: REVIEW -->
+  <div id="step4" class="step">
+    <h3>Review Recipe</h3>
+
+    <div id="reviewSection"></div>
+
+    <div class="nav-buttons">
+      <button onclick="prevStep()">← Back</button>
+      <button onclick="saveRecipe()">Save Recipe</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: DONE -->
+  <div id="step5" class="step">
+    <h3>Recipe Saved!</h3>
+    <p>Your recipe has been added.</p>
+    <button onclick="window.location.href='index.html'">Back to Recipes</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    let currentStep = 1;
+    let ingredients = [];
+    let steps = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadIngredients();
+    });
+
+    function showStep(n) {
+      document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+      document.getElementById("step
