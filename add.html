@@ -152,4 +152,150 @@
 
     function showStep(n) {
       document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
-      document.getElementById("step
+      document.getElementById("step" + n).classList.add("active");
+    }
+
+    function nextStep() {
+      currentStep++;
+      if (currentStep === 4) buildReview();
+      showStep(currentStep);
+    }
+
+    function prevStep() {
+      currentStep--;
+      showStep(currentStep);
+    }
+
+    /* -------------------------
+       INGREDIENT HANDLING
+    --------------------------*/
+
+    async function loadIngredients() {
+      const data = await getIngredients();
+      const select = document.getElementById("ingredientSelect");
+
+      select.innerHTML = "<option value=''>-- Select --</option>";
+
+      data.forEach(i => {
+        const opt = document.createElement("option");
+        opt.value = i.id;
+
+        let label = i.name;
+        if (i.category) label = `${i.category} → ${label}`;
+        if (i.subcategory) label = `${i.category} → ${i.subcategory} → ${i.name}`;
+        if (i.subsubcategory) label = `${i.category} → ${i.subcategory} → ${i.subsubcategory} → ${i.name}`;
+
+        opt.textContent = label;
+        select.appendChild(opt);
+      });
+    }
+
+    function openIngredientPopup() {
+      window.open("add_ingredient.html", "_blank", "width=500,height=600");
+    }
+
+    async function addIngredientToList() {
+      const id = document.getElementById("ingredientSelect").value;
+      const qty = document.getElementById("ingredientQty").value.trim();
+      const unit = document.getElementById("ingredientUnit").value.trim();
+
+      if (!id) return alert("Select an ingredient");
+      if (!qty) return alert("Enter quantity");
+
+      ingredients.push({ id, qty, unit });
+
+      const div = document.createElement("div");
+      div.className = "ingredient-row";
+      div.textContent = `${qty} ${unit} — Ingredient #${id}`;
+      document.getElementById("ingredientList").appendChild(div);
+
+      document.getElementById("ingredientQty").value = "";
+      document.getElementById("ingredientUnit").value = "";
+    }
+
+    /* -------------------------
+       STEP HANDLING
+    --------------------------*/
+
+    function addStepToList() {
+      const instruction = document.getElementById("stepInstruction").value.trim();
+      if (!instruction) return;
+
+      steps.push(instruction);
+
+      const div = document.createElement("div");
+      div.className = "step-row";
+      div.textContent = `${steps.length}. ${instruction}`;
+      document.getElementById("stepsList").appendChild(div);
+
+      document.getElementById("stepInstruction").value = "";
+    }
+
+    /* -------------------------
+       REVIEW
+    --------------------------*/
+
+    function buildReview() {
+      const name = document.getElementById("recipeName").value;
+      const category = document.getElementById("recipeCategory").value;
+      const notes = document.getElementById("recipeNotes").value;
+
+      let html = `
+        <strong>Name:</strong> ${name}<br>
+        <strong>Category:</strong> ${category}<br>
+        <strong>Notes:</strong> ${notes}<br><br>
+
+        <strong>Ingredients:</strong><br>
+      `;
+
+      ingredients.forEach((i, idx) => {
+        html += `${idx + 1}. ${i.qty} ${i.unit} (Ingredient ID: ${i.id})<br>`;
+      });
+
+      html += `<br><strong>Steps:</strong><br>`;
+      steps.forEach((s, idx) => {
+        html += `${idx + 1}. ${s}<br>`;
+      });
+
+      document.getElementById("reviewSection").innerHTML = html;
+    }
+
+    /* -------------------------
+       SAVE RECIPE
+    --------------------------*/
+
+    async function saveRecipe() {
+      const name = document.getElementById("recipeName").value.trim();
+      const category = document.getElementById("recipeCategory").value.trim();
+      const notes = document.getElementById("recipeNotes").value.trim();
+
+      if (!name) return alert("Recipe name required");
+
+      // Insert recipe
+      const recipe = await addRecipeBasics({ name, category, notes });
+
+      // Insert ingredients
+      for (const ing of ingredients) {
+        await addRecipeIngredient({
+          recipe_id: recipe.id,
+          ingredient_id: ing.id,
+          quantity: ing.qty,
+          unit: ing.unit
+        });
+      }
+
+      // Insert steps
+      for (let i = 0; i < steps.length; i++) {
+        await addRecipeStep({
+          recipe_id: recipe.id,
+          step_number: i + 1,
+          instruction: steps[i]
+        });
+      }
+
+      showStep(5);
+    }
+  </script>
+
+</body>
+</html>
