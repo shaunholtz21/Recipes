@@ -1,1 +1,98 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Flour",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:41:23.694726+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 2,
+    "name": "Sugar",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:41:43.017725+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 3,
+    "name": "Brown Sugar",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:41:59.393512+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 5,
+    "name": "Eggs",
+    "category": "Dairy",
+    "created_at": "2026-04-30T21:42:21.717077+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 6,
+    "name": "Chocolate Chips",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:42:34.826219+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 7,
+    "name": "Salt",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:42:45.292166+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 8,
+    "name": "Baking Soda",
+    "category": "Baking",
+    "created_at": "2026-04-30T21:42:55.304124+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 4,
+    "name": "Butter",
+    "category": "Dairy",
+    "created_at": "2026-04-30T21:42:07.43752+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 9,
+    "name": "Mostaccioli Noodles",
+    "category": "Pasta",
+    "created_at": "2026-05-01T15:56:24.898517+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 10,
+    "name": "Evaporated Milk",
+    "category": "Dairy",
+    "created_at": "2026-05-01T16:26:41.339671+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  },
+  {
+    "id": 11,
+    "name": "Sharp Cheddar",
+    "category": "Dairy",
+    "created_at": "2026-05-01T18:41:35.031568+00:00",
+    "subcategory": "Cheese",
+    "subsubcategory": null
+  },
+  {
+    "id": 59,
+    "name": "Tabasco",
+    "category": "Spice",
+    "created_at": "2026-05-01T18:48:24.935692+00:00",
+    "subcategory": null,
+    "subsubcategory": null
+  }
+]
