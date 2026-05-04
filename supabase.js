@@ -72,21 +72,13 @@ async function getIngredients() {
 
 // Insert a new ingredient
 async function addIngredient({ name, category, subcategory, subsubcategory }) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("ingredients")
     .insert([
-      {
-        name,
-        category,
-        subcategory,
-        subsubcategory
-      }
-    ])
-    .select()
-    .single();
+      { name, category, subcategory, subsubcategory }
+    ]);
 
   if (error) throw error;
-  return data;
 }
 
 /* -------------------------------------------------------
@@ -104,36 +96,30 @@ async function addRecipeBasics({ name, category, notes, prep_time, cook_time, to
       prep_time,
       cook_time,
       total_time
-    }])
-    .select()
-    .single();
+    }]);
 
   if (error) throw error;
-  return data;
+
+  // Return the inserted recipe (Supabase returns it automatically)
+  return data[0];
 }
 
-// Insert recipe ingredients
+// Insert recipe ingredients (NO DUPLICATION)
 async function addRecipeIngredient({ recipe_id, ingredient_id, quantity, unit }) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("recipe_ingredients")
-    .insert([{ recipe_id, ingredient_id, quantity, unit }])
-    .select()
-    .single();
+    .insert([{ recipe_id, ingredient_id, quantity, unit }]);
 
   if (error) throw error;
-  return data;
 }
 
-// Insert recipe steps
+// Insert recipe steps (NO DUPLICATION)
 async function addRecipeStep({ recipe_id, step_number, instruction }) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("steps")
-    .insert([{ recipe_id, step_number, instruction }])
-    .select()
-    .single();
+    .insert([{ recipe_id, step_number, instruction }]);
 
   if (error) throw error;
-  return data;
 }
 
 // Fetch a full recipe (for edit/view)
