@@ -60,6 +60,16 @@
 
     <label>Notes</label>
     <textarea id="recipeNotes" rows="4"></textarea>
+	
+	<label>Prep Time</label>
+    <input id="prepTime" type="text">
+
+    <label>Cook Time</label>
+    <input id="cookTime" type="text">
+
+    <label>Total Time</label>
+    <input id="totalTime" type="text">
+
   </div>
 
   <!-- INGREDIENTS -->
@@ -138,6 +148,9 @@
       document.getElementById("recipeName").value = recipe.name;
       document.getElementById("recipeCategory").value = recipe.category || "";
       document.getElementById("recipeNotes").value = recipe.notes || "";
+	  document.getElementById("prepTime").value = recipe.prep_time || "";
+      document.getElementById("cookTime").value = recipe.cook_time || "";
+      document.getElementById("totalTime").value = recipe.total_time || "";
 
       const { data: ingRows } = await supabase
         .from("recipe_ingredients")
@@ -339,9 +352,16 @@ function renderIngredientList() {
       if (!name) return alert("Recipe name required");
 
       await supabase
-        .from("recipes")
-        .update({ name, category, notes })
-        .eq("id", recipeId);
+  .from("recipes")
+  .update({
+    name,
+    category,
+    notes,
+    prep_time: document.getElementById("prepTime").value.trim(),
+    cook_time: document.getElementById("cookTime").value.trim(),
+    total_time: document.getElementById("totalTime").value.trim()
+  })
+  .eq("id", recipeId);
 
       await supabase
         .from("recipe_ingredients")
