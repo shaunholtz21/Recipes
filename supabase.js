@@ -1,3 +1,4 @@
+// cache-bust: 2026-05-04-1432
 // supabase.js
 // Centralized Supabase client + helper functions
 
