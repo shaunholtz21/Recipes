@@ -147,6 +147,7 @@
 
       ingredients = ingRows.map(r => ({
         id: r.ingredient_id,
+		name: r.ingredients.name,
         qty: r.quantity,
         unit: r.unit
       }));
@@ -276,6 +277,21 @@ function addIngredientToList() {
       ingredients.splice(index, 1);
       renderIngredientList();
     }
+
+function renderIngredientList() {
+  const container = document.getElementById("ingredientList");
+  container.innerHTML = "";
+
+  ingredients.forEach((ing, idx) => {
+    const div = document.createElement("div");
+    div.className = "ingredient-row";
+    div.innerHTML = `
+      ${ing.qty} ${ing.unit} — ${ing.name}
+      <span class="delete-btn" onclick="deleteIngredient(${idx})">✖</span>
+    `;
+    container.appendChild(div);
+  });
+}
 
     /* -------------------------
        STEPS
