@@ -60,8 +60,8 @@
 
     <label>Notes</label>
     <textarea id="recipeNotes" rows="4"></textarea>
-	
-	<label>Prep Time</label>
+
+    <label>Prep Time</label>
     <input id="prepTime" type="text">
 
     <label>Cook Time</label>
@@ -69,7 +69,6 @@
 
     <label>Total Time</label>
     <input id="totalTime" type="text">
-
   </div>
 
   <!-- INGREDIENTS -->
@@ -127,6 +126,7 @@
 
     let ingredients = [];
     let steps = [];
+    let recipeLoaded = false;
 
     document.addEventListener("DOMContentLoaded", async () => {
       await loadCategories();
@@ -138,6 +138,9 @@
     --------------------------*/
 
     async function loadRecipe() {
+      if (recipeLoaded) return;
+      recipeLoaded = true;
+
       if (!recipeId) {
         alert("No recipe ID provided");
         return;
@@ -148,7 +151,8 @@
       document.getElementById("recipeName").value = recipe.name;
       document.getElementById("recipeCategory").value = recipe.category || "";
       document.getElementById("recipeNotes").value = recipe.notes || "";
-	  document.getElementById("prepTime").value = recipe.prep_time || "";
+
+      document.getElementById("prepTime").value = recipe.prep_time || "";
       document.getElementById("cookTime").value = recipe.cook_time || "";
       document.getElementById("totalTime").value = recipe.total_time || "";
 
@@ -160,7 +164,7 @@
 
       ingredients = ingRows.map(r => ({
         id: r.ingredient_id,
-		name: r.ingredients.name,
+        name: r.ingredients.name,
         qty: r.quantity,
         unit: r.unit
       }));
@@ -180,7 +184,6 @@
 
     /* -------------------------
        CATEGORY → SUBCATEGORY → SUBSUB → INGREDIENT
-       (skip empty levels)
     --------------------------*/
 
     async function loadCategories() {
@@ -256,55 +259,51 @@
        INGREDIENT LIST
     --------------------------*/
 
-function addIngredientToList() {
-  const select = document.getElementById("ingredientSelect");
-  const id = select.value;
-  const option = select.selectedOptions[0];
+    function addIngredientToList() {
+      const select = document.getElementById("ingredientSelect");
+      const id = select.value;
+      const option = select.selectedOptions[0];
 
-  if (!id || !option) {
-    alert("Select an ingredient");
-    return;
-  }
+      if (!id || !option) {
+        alert("Select an ingredient");
+        return;
+      }
 
-  const name = option.textContent;
-  const qty = document.getElementById("ingredientQty").value.trim();
-  const unit = document.getElementById("ingredientUnit").value.trim();
+      const name = option.textContent;
+      const qty = document.getElementById("ingredientQty").value.trim();
+      const unit = document.getElementById("ingredientUnit").value.trim();
 
-  if (!qty) {
-    alert("Enter quantity");
-    return;
-  }
+      if (!qty) {
+        alert("Enter quantity");
+        return;
+      }
 
-  ingredients.push({ id, name, qty, unit });
+      ingredients.push({ id, name, qty, unit });
+      renderIngredientList();
 
-  const div = document.createElement("div");
-  div.className = "ingredient-row";
-  div.textContent = `${qty} ${unit} — ${name}`;
-  document.getElementById("ingredientList").appendChild(div);
-
-  document.getElementById("ingredientQty").value = "";
-  document.getElementById("ingredientUnit").value = "";
-}
+      document.getElementById("ingredientQty").value = "";
+      document.getElementById("ingredientUnit").value = "";
+    }
 
     function deleteIngredient(index) {
       ingredients.splice(index, 1);
       renderIngredientList();
     }
 
-function renderIngredientList() {
-  const container = document.getElementById("ingredientList");
-  container.innerHTML = "";
+    function renderIngredientList() {
+      const container = document.getElementById("ingredientList");
+      container.innerHTML = "";
 
-  ingredients.forEach((ing, idx) => {
-    const div = document.createElement("div");
-    div.className = "ingredient-row";
-    div.innerHTML = `
-      ${ing.qty} ${ing.unit} — ${ing.name}
-      <span class="delete-btn" onclick="deleteIngredient(${idx})">✖</span>
-    `;
-    container.appendChild(div);
-  });
-}
+      ingredients.forEach((ing, idx) => {
+        const div = document.createElement("div");
+        div.className = "ingredient-row";
+        div.innerHTML = `
+          ${ing.qty} ${ing.unit} — ${ing.name}
+          <span class="delete-btn" onclick="deleteIngredient(${idx})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
 
     /* -------------------------
        STEPS
@@ -352,16 +351,16 @@ function renderIngredientList() {
       if (!name) return alert("Recipe name required");
 
       await supabase
-  .from("recipes")
-  .update({
-    name,
-    category,
-    notes,
-    prep_time: document.getElementById("prepTime").value.trim(),
-    cook_time: document.getElementById("cookTime").value.trim(),
-    total_time: document.getElementById("totalTime").value.trim()
-  })
-  .eq("id", recipeId);
+        .from("recipes")
+        .update({
+          name,
+          category,
+          notes,
+          prep_time: document.getElementById("prepTime").value.trim(),
+          cook_time: document.getElementById("cookTime").value.trim(),
+          total_time: document.getElementById("totalTime").value.trim()
+        })
+        .eq("id", recipeId);
 
       await supabase
         .from("recipe_ingredients")
