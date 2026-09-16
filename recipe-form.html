@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recipe</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="site-nav">
+    <span class="brand">🍲 Family Recipes</span>
+    <a href="index.html">Recipes</a>
+    <a href="ingredients.html">Ingredients</a>
+    <a href="categories.html">Categories</a>
+  </nav>
+
+  <h2 id="formTitle">Add New Recipe</h2>
+
+  <!-- BASICS -->
+  <div class="section">
+    <label>Recipe Name</label>
+    <input id="recipeName" type="text">
+
+    <label>Recipe Category</label>
+    <input id="recipeCategory" type="text" list="categoryOptions" placeholder="e.g. Dessert">
+    <datalist id="categoryOptions"></datalist>
+
+    <label>Notes</label>
+    <textarea id="recipeNotes" rows="3"></textarea>
+
+    <div class="row" style="margin-top: 10px;">
+      <div style="flex:1;">
+        <label>Servings</label>
+        <input id="servings" type="text" placeholder="e.g. 4">
+      </div>
+      <div style="flex:1;">
+        <label>Prep Time</label>
+        <input id="prepTime" type="text" placeholder="e.g. 15 min">
+      </div>
+      <div style="flex:1;">
+        <label>Cook Time</label>
+        <input id="cookTime" type="text" placeholder="e.g. 45 min">
+      </div>
+      <div style="flex:1;">
+        <label>Total Time</label>
+        <input id="totalTime" type="text" placeholder="e.g. 1 hr">
+      </div>
+    </div>
+  </div>
+
+  <!-- INGREDIENTS -->
+  <div class="section">
+    <h3>Ingredients</h3>
+
+    <label>Ingredient</label>
+    <div class="typeahead">
+      <input id="ingredientSearch" type="text" autocomplete="off" placeholder="Start typing an ingredient name...">
+      <div id="ingredientResults" class="typeahead-results"></div>
+    </div>
+    <div id="ingredientPicked" class="muted" style="margin-top: 6px;"></div>
+
+    <div class="row" style="margin-top: 10px;">
+      <div style="flex:1;">
+        <label>Quantity</label>
+        <input id="ingredientQty" type="text" placeholder="e.g. 2">
+      </div>
+      <div style="flex:1;">
+        <label>Unit</label>
+        <input id="ingredientUnit" type="text" placeholder="e.g. cups">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: 15px;">
+      <button onclick="addIngredientToList()">Add Ingredient</button>
+      <button onclick="openQuickAddIngredient()">+ New Ingredient</button>
+    </div>
+
+    <h4>Ingredient List</h4>
+    <div id="ingredientList" class="muted">No ingredients added yet.</div>
+  </div>
+
+  <!-- STEPS -->
+  <div class="section">
+    <h3>Directions</h3>
+
+    <label>Step Instruction</label>
+    <textarea id="stepInstruction" rows="2"></textarea>
+    <button onclick="addStepToList()" style="margin-top: 10px;">Add Step</button>
+
+    <h4>Steps</h4>
+    <div id="stepsList" class="muted">No steps added yet.</div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" onclick="saveRecipe()">Save Recipe</button>
+    <button onclick="window.location.href='index.html'">Cancel</button>
+    <button id="deleteRecipeBtn" class="danger" style="display:none; margin-left:auto;" onclick="removeThisRecipe()">Delete Recipe</button>
+  </div>
+
+  <!-- QUICK ADD INGREDIENT MODAL -->
+  <div id="quickAddBg" class="modal-bg">
+    <div class="modal">
+      <h3>New Ingredient</h3>
+      <label>Name</label>
+      <input id="quickIngName" type="text">
+      <label>Category</label>
+      <select id="quickIngCategory"></select>
+      <div class="actions">
+        <button onclick="closeQuickAddIngredient()">Cancel</button>
+        <button class="primary" onclick="saveQuickAddIngredient()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const recipeId = params.get("id");
+    const isEdit = !!recipeId;
+
+    let ingredientCatalog = [];
+    let selectedIngredient = null;
+    let ingredients = []; // { ingredient_id, name, category_path, qty, unit }
+    let steps = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (isEdit) {
+        document.getElementById("formTitle").textContent = "Edit Recipe";
+        document.getElementById("deleteRecipeBtn").style.display = "inline-block";
+      }
+
+      await Promise.all([loadIngredientCatalog(), loadCategoryOptions()]);
+
+      if (isEdit) await loadExistingRecipe();
+    });
+
+    /* -------------------------
+       LOAD REFERENCE DATA
+    --------------------------*/
+
+    async function loadIngredientCatalog() {
+      ingredientCatalog = await getIngredientsWithPath();
+    }
+
+    async function loadCategoryOptions() {
+      const recipes = await getRecipes();
+      const categories = [...new Set(recipes.map(r => r.category).filter(Boolean))];
+      const list = document.getElementById("categoryOptions");
+      list.innerHTML = "";
+      categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        list.appendChild(opt);
+      });
+    }
+
+    async function loadExistingRecipe() {
+      const recipe = await getRecipe(recipeId);
+
+      document.getElementById("recipeName").value = recipe.name;
+      document.getElementById("recipeCategory").value = recipe.category || "";
+      document.getElementById("recipeNotes").value = recipe.notes || "";
+      document.getElementById("servings").value = recipe.servings || "";
+      document.getElementById("prepTime").value = recipe.prep_time || "";
+      document.getElementById("cookTime").value = recipe.cook_time || "";
+      document.getElementById("totalTime").value = recipe.total_time || "";
+
+      const ingRows = await getRecipeIngredients(recipeId);
+      ingredients = ingRows.map(r => ({
+        ingredient_id: r.ingredient_id,
+        name: r.ingredients.name,
+        category_path: "",
+        qty: r.quantity,
+        unit: r.unit
+      }));
+      renderIngredientList();
+
+      const stepRows = await getRecipeSteps(recipeId);
+      steps = stepRows.map(s => s.instruction);
+      renderStepList();
+    }
+
+    /* -------------------------
+       INGREDIENT TYPEAHEAD
+    --------------------------*/
+
+    const searchInput = document.getElementById("ingredientSearch");
+    const resultsBox = document.getElementById("ingredientResults");
+
+    searchInput.addEventListener("input", () => {
+      selectedIngredient = null;
+      document.getElementById("ingredientPicked").textContent = "";
+
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        resultsBox.classList.remove("open");
+        resultsBox.innerHTML = "";
+        return;
+      }
+
+      const matches = ingredientCatalog
+        .filter(i => i.name.toLowerCase().includes(q) || i.category_path.toLowerCase().includes(q))
+        .slice(0, 8);
+
+      resultsBox.innerHTML = "";
+      if (matches.length === 0) {
+        resultsBox.classList.remove("open");
+        return;
+      }
+
+      matches.forEach(i => {
+        const row = document.createElement("div");
+        row.className = "typeahead-result";
+        row.innerHTML = `<div class="name">${i.name}</div><div class="path">${i.category_path || "Uncategorized"}</div>`;
+        row.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          pickIngredient(i);
+        });
+        resultsBox.appendChild(row);
+      });
+
+      resultsBox.classList.add("open");
+    });
+
+    searchInput.addEventListener("blur", () => {
+      setTimeout(() => resultsBox.classList.remove("open"), 150);
+    });
+
+    function pickIngredient(ing) {
+      selectedIngredient = ing;
+      searchInput.value = ing.name;
+      document.getElementById("ingredientPicked").textContent = ing.category_path
+        ? `Selected: ${ing.name} (${ing.category_path})`
+        : `Selected: ${ing.name}`;
+      resultsBox.classList.remove("open");
+    }
+
+    function addIngredientToList() {
+      if (!selectedIngredient) {
+        alert("Search for and select an ingredient first");
+        return;
+      }
+
+      const qty = document.getElementById("ingredientQty").value.trim();
+      const unit = document.getElementById("ingredientUnit").value.trim();
+
+      if (!qty) {
+        alert("Enter a quantity");
+        return;
+      }
+
+      ingredients.push({
+        ingredient_id: selectedIngredient.id,
+        name: selectedIngredient.name,
+        category_path: selectedIngredient.category_path,
+        qty,
+        unit
+      });
+      renderIngredientList();
+
+      selectedIngredient = null;
+      searchInput.value = "";
+      document.getElementById("ingredientPicked").textContent = "";
+      document.getElementById("ingredientQty").value = "";
+      document.getElementById("ingredientUnit").value = "";
+    }
+
+    function deleteIngredientRow(idx) {
+      ingredients.splice(idx, 1);
+      renderIngredientList();
+    }
+
+    function renderIngredientList() {
+      const container = document.getElementById("ingredientList");
+
+      if (ingredients.length === 0) {
+        container.className = "muted";
+        container.textContent = "No ingredients added yet.";
+        return;
+      }
+
+      container.className = "";
+      container.innerHTML = "";
+      ingredients.forEach((ing, idx) => {
+        const div = document.createElement("div");
+        div.className = "card card-list-item";
+        div.innerHTML = `
+          <div>${ing.qty} ${ing.unit} — ${ing.name}</div>
+          <span class="delete-x" onclick="deleteIngredientRow(${idx})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* -------------------------
+       QUICK ADD INGREDIENT
+    --------------------------*/
+
+    async function openQuickAddIngredient() {
+      const paths = await getCategoryPaths();
+      const select = document.getElementById("quickIngCategory");
+      select.innerHTML = "<option value=''>-- Uncategorized --</option>";
+      paths.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.path;
+        select.appendChild(opt);
+      });
+
+      document.getElementById("quickIngName").value = searchInput.value.trim();
+      document.getElementById("quickAddBg").classList.add("open");
+    }
+
+    function closeQuickAddIngredient() {
+      document.getElementById("quickAddBg").classList.remove("open");
+    }
+
+    async function saveQuickAddIngredient() {
+      const name = document.getElementById("quickIngName").value.trim();
+      const category_id = document.getElementById("quickIngCategory").value || null;
+
+      if (!name) {
+        alert("Ingredient name required");
+        return;
+      }
+
+      try {
+        await addIngredient({ name, category_id });
+        await loadIngredientCatalog();
+        closeQuickAddIngredient();
+      } catch (err) {
+        alert("Could not save ingredient: " + err.message);
+      }
+    }
+
+    /* -------------------------
+       STEPS
+    --------------------------*/
+
+    function addStepToList() {
+      const instruction = document.getElementById("stepInstruction").value.trim();
+      if (!instruction) return;
+
+      steps.push(instruction);
+      renderStepList();
+      document.getElementById("stepInstruction").value = "";
+    }
+
+    function deleteStepRow(idx) {
+      steps.splice(idx, 1);
+      renderStepList();
+    }
+
+    function renderStepList() {
+      const container = document.getElementById("stepsList");
+
+      if (steps.length === 0) {
+        container.className = "muted";
+        container.textContent = "No steps added yet.";
+        return;
+      }
+
+      container.className = "";
+      container.innerHTML = "";
+      steps.forEach((s, idx) => {
+        const div = document.createElement("div");
+        div.className = "card card-list-item";
+        div.innerHTML = `
+          <div>${idx + 1}. ${s}</div>
+          <span class="delete-x" onclick="deleteStepRow(${idx})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* -------------------------
+       SAVE / DELETE
+    --------------------------*/
+
+    async function saveRecipe() {
+      const name = document.getElementById("recipeName").value.trim();
+      if (!name) return alert("Recipe name required");
+
+      const payload = {
+        name,
+        category: document.getElementById("recipeCategory").value.trim(),
+        notes: document.getElementById("recipeNotes").value.trim(),
+        servings: document.getElementById("servings").value.trim(),
+        prep_time: document.getElementById("prepTime").value.trim(),
+        cook_time: document.getElementById("cookTime").value.trim(),
+        total_time: document.getElementById("totalTime").value.trim()
+      };
+
+      try {
+        let id = recipeId;
+
+        if (isEdit) {
+          await updateRecipe(id, payload);
+        } else {
+          const created = await addRecipe(payload);
+          id = created.id;
+        }
+
+        await replaceRecipeIngredients(id, ingredients.map(i => ({
+          ingredient_id: i.ingredient_id,
+          quantity: i.qty,
+          unit: i.unit
+        })));
+
+        await replaceRecipeSteps(id, steps);
+
+        window.location.href = `view.html?id=${id}`;
+      } catch (err) {
+        alert("Could not save recipe: " + err.message);
+      }
+    }
+
+    async function removeThisRecipe() {
+      if (!confirm("Delete this recipe? This cannot be undone.")) return;
+
+      try {
+        await deleteRecipe(recipeId);
+        window.location.href = "index.html";
+      } catch (err) {
+        alert("Could not delete recipe: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

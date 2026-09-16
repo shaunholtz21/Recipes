@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Categories</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="site-nav">
+    <span class="brand">🍲 Family Recipes</span>
+    <a href="index.html">Recipes</a>
+    <a href="ingredients.html">Ingredients</a>
+    <a href="categories.html">Categories</a>
+  </nav>
+
+  <h2>Ingredient Categories</h2>
+  <p class="muted">Organize ingredients into categories and subcategories (as deep as you like), then pick from them when adding an ingredient.</p>
+
+  <button class="primary" onclick="openAddModal(null)">+ Add Top-Level Category</button>
+
+  <div id="categoryTree"></div>
+
+  <!-- ADD/RENAME MODAL -->
+  <div id="modalBg" class="modal-bg">
+    <div class="modal">
+      <h3 id="modalTitle"></h3>
+      <label>Name</label>
+      <input id="modalInput" type="text">
+      <div class="actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button class="primary" onclick="saveModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    let modalMode = null; // "add" | "rename"
+    let modalParentId = null;
+    let modalCategoryId = null;
+
+    document.addEventListener("DOMContentLoaded", loadTree);
+
+    async function loadTree() {
+      const tree = await getCategoryTree();
+      const container = document.getElementById("categoryTree");
+      container.innerHTML = "";
+
+      if (tree.length === 0) {
+        container.innerHTML = `<p class="muted" style="margin-top:20px;">No categories yet.</p>`;
+        return;
+      }
+
+      tree.forEach(node => container.appendChild(renderNode(node)));
+    }
+
+    function renderNode(node) {
+      const block = document.createElement("div");
+      block.className = "category-block";
+
+      const header = document.createElement("div");
+      header.className = "row";
+      header.style.justifyContent = "space-between";
+      header.innerHTML = `
+        <strong>${node.name}</strong>
+        <div class="row">
+          <button onclick="openAddModal(${node.id})">+ Subcategory</button>
+          <button onclick="openRenameModal(${node.id}, '${escapeAttr(node.name)}')">Rename</button>
+          <span class="delete-x" onclick="removeCategory(${node.id}, '${escapeAttr(node.name)}')">✖</span>
+        </div>
+      `;
+      block.appendChild(header);
+
+      if (node.children.length > 0) {
+        const childWrap = document.createElement("div");
+        childWrap.className = "category-children";
+        node.children.forEach(child => childWrap.appendChild(renderNode(child)));
+        block.appendChild(childWrap);
+      }
+
+      return block;
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/'/g, "\\'");
+    }
+
+    /* -------------------------
+       MODAL
+    --------------------------*/
+
+    function openAddModal(parentId) {
+      modalMode = "add";
+      modalParentId = parentId;
+      modalCategoryId = null;
+
+      document.getElementById("modalTitle").textContent = parentId
+        ? "Add Subcategory"
+        : "Add Top-Level Category";
+      document.getElementById("modalInput").value = "";
+      document.getElementById("modalBg").classList.add("open");
+    }
+
+    function openRenameModal(id, currentName) {
+      modalMode = "rename";
+      modalCategoryId = id;
+      modalParentId = null;
+
+      document.getElementById("modalTitle").textContent = "Rename Category";
+      document.getElementById("modalInput").value = currentName;
+      document.getElementById("modalBg").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modalBg").classList.remove("open");
+    }
+
+    async function saveModal() {
+      const value = document.getElementById("modalInput").value.trim();
+      if (!value) return;
+
+      try {
+        if (modalMode === "add") {
+          await addCategory({ name: value, parent_id: modalParentId });
+        } else if (modalMode === "rename") {
+          await renameCategory(modalCategoryId, value);
+        }
+
+        closeModal();
+        await loadTree();
+      } catch (err) {
+        alert("Could not save category: " + err.message);
+      }
+    }
+
+    async function removeCategory(id, name) {
+      if (!confirm(`Delete "${name}"? This also deletes any subcategories under it, and un-categorizes any ingredients that used it.`)) return;
+
+      try {
+        await deleteCategory(id);
+        await loadTree();
+      } catch (err) {
+        alert("Could not delete category: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
