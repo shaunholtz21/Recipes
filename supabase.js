@@ -117,6 +117,15 @@ async function addIngredient({ name, category_id }) {
   return data[0];
 }
 
+async function updateIngredient(id, { name, category_id }) {
+  const { error } = await supabase
+    .from("ingredients")
+    .update({ name, category_id: category_id || null })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 async function deleteIngredient(id) {
   const { error } = await supabase
     .from("ingredients")

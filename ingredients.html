@@ -35,6 +35,21 @@
 
   <div id="ingredientList"></div>
 
+  <!-- EDIT MODAL -->
+  <div id="editModalBg" class="modal-bg">
+    <div class="modal">
+      <h3>Edit Ingredient</h3>
+      <label>Name</label>
+      <input id="editIngName" type="text">
+      <label>Category</label>
+      <select id="editIngCategory"></select>
+      <div class="actions">
+        <button onclick="closeEditModal()">Cancel</button>
+        <button class="primary" onclick="saveEditModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
   <script src="supabase.js"></script>
 
@@ -58,12 +73,16 @@
 
     async function refreshCategorySelect() {
       const paths = await getCategoryPaths();
-      const select = document.getElementById("newIngCategory");
+      await populateCategorySelect(document.getElementById("newIngCategory"), paths);
+    }
+
+    async function populateCategorySelect(select, paths, selectedId) {
       select.innerHTML = "<option value=''>-- Uncategorized --</option>";
       paths.forEach(p => {
         const opt = document.createElement("option");
         opt.value = p.id;
         opt.textContent = p.path;
+        if (selectedId && String(p.id) === String(selectedId)) opt.selected = true;
         select.appendChild(opt);
       });
     }
@@ -90,10 +109,51 @@
             <div class="card-title">${ing.name}</div>
             <div class="card-subtitle">${ing.category_path || "Uncategorized"}</div>
           </div>
-          <span class="delete-x" onclick="removeIngredient(${ing.id})">✖</span>
+          <div class="row">
+            <button onclick="openEditModal(${ing.id})">Edit</button>
+            <span class="delete-x" onclick="removeIngredient(${ing.id})">✖</span>
+          </div>
         `;
         container.appendChild(div);
       });
+    }
+
+    let editingIngredientId = null;
+
+    async function openEditModal(id) {
+      const ing = allIngredients.find(i => i.id === id);
+      if (!ing) return;
+
+      editingIngredientId = id;
+      document.getElementById("editIngName").value = ing.name;
+
+      const paths = await getCategoryPaths();
+      await populateCategorySelect(document.getElementById("editIngCategory"), paths, ing.category_id);
+
+      document.getElementById("editModalBg").classList.add("open");
+    }
+
+    function closeEditModal() {
+      document.getElementById("editModalBg").classList.remove("open");
+      editingIngredientId = null;
+    }
+
+    async function saveEditModal() {
+      const name = document.getElementById("editIngName").value.trim();
+      const category_id = document.getElementById("editIngCategory").value || null;
+
+      if (!name) {
+        alert("Ingredient name required");
+        return;
+      }
+
+      try {
+        await updateIngredient(editingIngredientId, { name, category_id });
+        closeEditModal();
+        await refreshIngredients();
+      } catch (err) {
+        alert("Could not update ingredient: " + err.message);
+      }
     }
 
     async function createIngredient() {
