@@ -2,95 +2,69 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Recipes</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    .recipe-row {
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      margin-top: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .recipe-name {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .buttons {
-      display: flex;
-      gap: 10px;
-    }
-
-    button {
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-
-    #emptyMessage {
-      margin-top: 20px;
-      font-style: italic;
-      color: #666;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <h2>Your Recipes</h2>
+  <nav class="site-nav">
+    <span class="brand">🍲 Family Recipes</span>
+    <a href="index.html">Recipes</a>
+    <a href="ingredients.html">Ingredients</a>
+    <a href="categories.html">Categories</a>
+  </nav>
 
-  <button onclick="window.location.href='add.html'">+ Add New Recipe</button>
+  <div class="row" style="justify-content: space-between;">
+    <input type="search" id="searchBox" placeholder="Search recipes..." style="max-width: 320px;">
+    <button class="primary" onclick="window.location.href='recipe-form.html'">+ Add New Recipe</button>
+  </div>
 
   <div id="recipeList"></div>
-  <div id="emptyMessage" style="display:none;">No recipes yet. Add one!</div>
+  <div id="emptyMessage" class="muted" style="display:none; margin-top:20px;">No recipes yet. Add one!</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
   <script src="supabase.js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", loadRecipes);
+    let allRecipes = [];
 
-    async function loadRecipes() {
-      const { data, error } = await supabase
-        .from("recipes")
-        .select("*")
-        .order("name", { ascending: true });
+    document.addEventListener("DOMContentLoaded", async () => {
+      allRecipes = await getRecipes();
+      renderRecipes(allRecipes);
+    });
 
-      if (error) {
-        console.error(error);
-        return;
-      }
+    document.getElementById("searchBox").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const filtered = !q
+        ? allRecipes
+        : allRecipes.filter(r =>
+            r.name.toLowerCase().includes(q) ||
+            (r.category || "").toLowerCase().includes(q)
+          );
+      renderRecipes(filtered);
+    });
 
+    function renderRecipes(recipes) {
       const container = document.getElementById("recipeList");
       container.innerHTML = "";
 
-      if (!data || data.length === 0) {
-        document.getElementById("emptyMessage").style.display = "block";
-        return;
-      }
+      document.getElementById("emptyMessage").style.display =
+        recipes.length === 0 ? "block" : "none";
 
-      data.forEach(recipe => {
+      recipes.forEach(recipe => {
         const div = document.createElement("div");
-        div.className = "recipe-row";
+        div.className = "card card-list-item";
 
         div.innerHTML = `
-          <div class="recipe-name">${recipe.name}</div>
-          <div class="buttons">
+          <div>
+            <div class="card-title">${escapeHtml(recipe.name)}</div>
+            <div class="card-subtitle">${escapeHtml(recipe.category || "")}</div>
+          </div>
+          <div class="row">
             <button onclick="viewRecipe(${recipe.id})">View</button>
             <button onclick="editRecipe(${recipe.id})">Edit</button>
+            <span class="delete-x" title="Delete recipe" onclick="removeRecipe(${recipe.id}, this)">✖</span>
           </div>
         `;
 
@@ -98,12 +72,30 @@
       });
     }
 
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
     function viewRecipe(id) {
       window.location.href = `view.html?id=${id}`;
     }
 
     function editRecipe(id) {
-      window.location.href = `edit.html?id=${id}`;
+      window.location.href = `recipe-form.html?id=${id}`;
+    }
+
+    async function removeRecipe(id, el) {
+      if (!confirm("Delete this recipe? This cannot be undone.")) return;
+
+      try {
+        await deleteRecipe(id);
+        allRecipes = allRecipes.filter(r => r.id !== id);
+        renderRecipes(allRecipes);
+      } catch (err) {
+        alert("Could not delete recipe: " + err.message);
+      }
     }
   </script>
 </body>

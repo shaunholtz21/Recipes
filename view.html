@@ -2,41 +2,22 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>View Recipe</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
-    }
-
-    h2 {
-      margin-bottom: 5px;
-    }
-
-    .section {
-      margin-top: 25px;
-    }
-
-    .ingredient-item, .step-item {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      margin-top: 5px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin-top: 20px;
-      cursor: pointer;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
+  <nav class="site-nav">
+    <span class="brand">🍲 Family Recipes</span>
+    <a href="index.html">Recipes</a>
+    <a href="ingredients.html">Ingredients</a>
+    <a href="categories.html">Categories</a>
+  </nav>
+
   <h2 id="recipeName"></h2>
-  <p id="recipeCategory"></p>
+  <p id="recipeCategory" class="card-subtitle"></p>
+  <div class="row" id="timesRow" style="margin-top: 8px;"></div>
   <p id="recipeNotes"></p>
 
   <div class="section">
@@ -45,18 +26,20 @@
   </div>
 
   <div class="section">
-    <h3>Steps</h3>
+    <h3>Directions</h3>
     <div id="stepsList"></div>
   </div>
 
-  <button onclick="editRecipe()">Edit Recipe</button>
-  <button onclick="window.location.href='index.html'">Back to Recipes</button>
+  <div class="actions">
+    <button class="primary" onclick="editRecipe()">Edit Recipe</button>
+    <button onclick="window.location.href='index.html'">Back to Recipes</button>
+    <button class="danger" style="margin-left:auto;" onclick="removeRecipe()">Delete Recipe</button>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
   <script src="supabase.js"></script>
 
   <script>
-    // Get recipe ID from URL
     const params = new URLSearchParams(window.location.search);
     const recipeId = params.get("id");
 
@@ -68,61 +51,64 @@
         return;
       }
 
-      // Fetch recipe basics
       const recipe = await getRecipe(recipeId);
 
       document.getElementById("recipeName").textContent = recipe.name;
       document.getElementById("recipeCategory").textContent = recipe.category || "";
       document.getElementById("recipeNotes").textContent = recipe.notes || "";
 
-      // Fetch ingredients
-      const { data: ingredients, error: ingErr } = await supabase
-        .from("recipe_ingredients")
-        .select("*, ingredients(*)")
-        .eq("recipe_id", recipeId)
-        .order("id", { ascending: true });
+      const times = [];
+      if (recipe.servings) times.push(`<span><strong>Servings:</strong> ${recipe.servings}</span>`);
+      if (recipe.prep_time) times.push(`<span><strong>Prep:</strong> ${recipe.prep_time}</span>`);
+      if (recipe.cook_time) times.push(`<span><strong>Cook:</strong> ${recipe.cook_time}</span>`);
+      if (recipe.total_time) times.push(`<span><strong>Total:</strong> ${recipe.total_time}</span>`);
+      document.getElementById("timesRow").innerHTML = times.join(" &nbsp;•&nbsp; ");
 
-      if (ingErr) console.error(ingErr);
-
+      const ingredients = await getRecipeIngredients(recipeId);
       const ingList = document.getElementById("ingredientsList");
       ingList.innerHTML = "";
 
-      ingredients.forEach(item => {
-        const ing = item.ingredients;
+      if (ingredients.length === 0) {
+        ingList.innerHTML = `<p class="muted">No ingredients listed.</p>`;
+      } else {
+        ingredients.forEach(item => {
+          const ing = item.ingredients;
+          const div = document.createElement("div");
+          div.className = "card";
+          div.textContent = `${item.quantity || ""} ${item.unit || ""} — ${ing.name}`.trim();
+          ingList.appendChild(div);
+        });
+      }
 
-        let label = ing.name;
-        if (ing.category) label = `${ing.category} → ${label}`;
-        if (ing.subcategory) label = `${ing.category} → ${ing.subcategory} → ${ing.name}`;
-        if (ing.subsubcategory) label = `${ing.category} → ${ing.subcategory} → ${ing.subsubcategory} → ${ing.name}`;
-
-        const div = document.createElement("div");
-        div.className = "ingredient-item";
-        div.textContent = `${item.quantity} ${item.unit} — ${label}`;
-        ingList.appendChild(div);
-      });
-
-      // Fetch steps
-      const { data: steps, error: stepErr } = await supabase
-        .from("steps")
-        .select("*")
-        .eq("recipe_id", recipeId)
-        .order("step_number", { ascending: true });
-
-      if (stepErr) console.error(stepErr);
-
+      const steps = await getRecipeSteps(recipeId);
       const stepList = document.getElementById("stepsList");
       stepList.innerHTML = "";
 
-      steps.forEach(s => {
-        const div = document.createElement("div");
-        div.className = "step-item";
-        div.textContent = `${s.step_number}. ${s.instruction}`;
-        stepList.appendChild(div);
-      });
+      if (steps.length === 0) {
+        stepList.innerHTML = `<p class="muted">No directions listed.</p>`;
+      } else {
+        steps.forEach(s => {
+          const div = document.createElement("div");
+          div.className = "card";
+          div.textContent = `${s.step_number}. ${s.instruction}`;
+          stepList.appendChild(div);
+        });
+      }
     }
 
     function editRecipe() {
-      window.location.href = `edit.html?id=${recipeId}`;
+      window.location.href = `recipe-form.html?id=${recipeId}`;
+    }
+
+    async function removeRecipe() {
+      if (!confirm("Delete this recipe? This cannot be undone.")) return;
+
+      try {
+        await deleteRecipe(recipeId);
+        window.location.href = "index.html";
+      } catch (err) {
+        alert("Could not delete recipe: " + err.message);
+      }
     }
   </script>
 

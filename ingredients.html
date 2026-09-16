@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingredients</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="site-nav">
+    <span class="brand">🍲 Family Recipes</span>
+    <a href="index.html">Recipes</a>
+    <a href="ingredients.html">Ingredients</a>
+    <a href="categories.html">Categories</a>
+  </nav>
+
+  <h2>Ingredients</h2>
+
+  <div class="card">
+    <div class="row">
+      <div style="flex:1;">
+        <label>Name</label>
+        <input id="newIngName" type="text" placeholder="e.g. Sirloin">
+      </div>
+      <div style="flex:1;">
+        <label>Category</label>
+        <select id="newIngCategory"></select>
+      </div>
+    </div>
+    <button class="primary" style="margin-top: 15px;" onclick="createIngredient()">+ Add Ingredient</button>
+  </div>
+
+  <input type="search" id="searchBox" placeholder="Search ingredients..." style="margin-top: 20px;">
+
+  <div id="ingredientList"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    let allIngredients = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await refreshCategorySelect();
+      await refreshIngredients();
+    });
+
+    document.getElementById("searchBox").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const filtered = !q
+        ? allIngredients
+        : allIngredients.filter(i =>
+            i.name.toLowerCase().includes(q) || i.category_path.toLowerCase().includes(q)
+          );
+      renderIngredients(filtered);
+    });
+
+    async function refreshCategorySelect() {
+      const paths = await getCategoryPaths();
+      const select = document.getElementById("newIngCategory");
+      select.innerHTML = "<option value=''>-- Uncategorized --</option>";
+      paths.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.path;
+        select.appendChild(opt);
+      });
+    }
+
+    async function refreshIngredients() {
+      allIngredients = await getIngredientsWithPath();
+      renderIngredients(allIngredients);
+    }
+
+    function renderIngredients(list) {
+      const container = document.getElementById("ingredientList");
+      container.innerHTML = "";
+
+      if (list.length === 0) {
+        container.innerHTML = `<p class="muted" style="margin-top:20px;">No ingredients found.</p>`;
+        return;
+      }
+
+      list.forEach(ing => {
+        const div = document.createElement("div");
+        div.className = "card card-list-item";
+        div.innerHTML = `
+          <div>
+            <div class="card-title">${ing.name}</div>
+            <div class="card-subtitle">${ing.category_path || "Uncategorized"}</div>
+          </div>
+          <span class="delete-x" onclick="removeIngredient(${ing.id})">✖</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function createIngredient() {
+      const name = document.getElementById("newIngName").value.trim();
+      const category_id = document.getElementById("newIngCategory").value || null;
+
+      if (!name) {
+        alert("Ingredient name required");
+        return;
+      }
+
+      try {
+        await addIngredient({ name, category_id });
+        document.getElementById("newIngName").value = "";
+        await refreshIngredients();
+      } catch (err) {
+        alert("Could not add ingredient: " + err.message);
+      }
+    }
+
+    async function removeIngredient(id) {
+      if (!confirm("Delete this ingredient? Any recipes using it will lose that ingredient line.")) return;
+
+      try {
+        await deleteIngredient(id);
+        await refreshIngredients();
+      } catch (err) {
+        alert("Could not delete ingredient: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
